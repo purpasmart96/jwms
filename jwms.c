@@ -16,42 +16,40 @@
 #include <bsd/string.h>
 #include <confuse.h>
 
-#define ARRAY_SIZE(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
+#include "jwms.h"
 
-// Freedesktop.org miniumum required categories
-typedef enum
+static KeyValuePair xdg_keys[] =
 {
-    AudioVideo,
-    Audio,
-    Video,
-    Development,
-    Education,
-    Game,
-    Graphics,
-    Network,
-    Office,
-    Science,
-    Settings,
-    System,
-    Utility,
-    Invalid
-} XDGMainCategories;
+    {"Type",                 Type                },
+    {"Version",              Version             },
+    {"Name",                 Name                },
+    {"GenericName",          GenericName         },
+    {"NoDisplay",            NoDisplay           },
+    {"Comment",              Comment             },
+    {"Icon",                 Icon                },
+    {"Hidden",               Hidden              },
+    {"OnlyShowIn",           OnlyShowIn          },
+    {"NotShowIn",            NotShowIn           },
+    {"DBusActivatable",      DBusActivatable     },
+    {"TryExec",              TryExec             },
+    {"Exec",                 Exec                },
+    {"Path",                 Path                },
+    {"Terminal",             Terminal            },
+    {"Actions",              Actions             },
+    {"MimeType",             MimeType            },
+    {"Categories",           Categories          },
+    {"Implements",           Implements          },
+    {"Keywords",             Keywords            },
+    {"StartupNotify",        StartupNotify       },
+    {"StartupWMClass",       StartupWMClass      },
+    {"URL",                  URL                 },
+    {"PrefersNonDefaultGPU", PrefersNonDefaultGPU},
+    {"SingleMainWindow",     SingleMainWindow    }
 
-typedef enum
-{
-    WebBrowser,
-    FileManager,
-    TerminalEmulator,
-    TextEditor,
-} XDGAdditionalCategories;
+};
 
-typedef struct
-{
-    char *key;
-    int value;
-} XDGCategory;
 
-static XDGCategory xdg_main_categories[] =
+static KeyValuePair xdg_main_categories[] =
 {
     {"AudioVideo",  AudioVideo },
     {"Audio",       Audio      },
@@ -68,7 +66,7 @@ static XDGCategory xdg_main_categories[] =
     {"Utility",     Utility    }
 };
 
-static XDGCategory xdg_extra_categories[] =
+static KeyValuePair xdg_extra_categories[] =
 {
     {"WebBrowser",       WebBrowser      },
     {"FileManager",      FileManager     },
@@ -76,72 +74,22 @@ static XDGCategory xdg_extra_categories[] =
     {"TextEditor",       TextEditor      },
 };
 
-// /usr/share/applications
-typedef struct
+static KeyValuePair *CreateCategory(char *key, int value)
 {
-    XDGCategory *category;
-    XDGCategory *extra_category;
-    char *name;
-    char *exec;
-    char *desc;
-    char *icon;
-    bool terminal_required;
-} XDGDesktopEntry;
-
-typedef struct
-{
-    size_t size;
-    size_t capacity;
-    XDGDesktopEntry **data;
-} XDGDesktopEntries;
-
-typedef struct {
-    int height;
-} JWMRootMenu;
-
-typedef enum
-{
-    Bottom,
-    Top,
-    Left,
-    Right
-} TrayPositions;
-
-typedef struct {
-    TrayPositions tpos;
-    int height;
-    bool auto_hide;
-    int icon_spacing;
-    char *browser_name;
-    char *terminal_name;
-    char *filemanager_name;
-} JWMTray;
-
-typedef struct
-{
-    JWMRootMenu *root_menu;
-    JWMTray *tray;
-    char *browser_name;
-    char *terminal_name;
-    char *filemanager_name;
-} JWM;
-
-static XDGCategory *CreateCategory(char *key, int value)
-{
-    XDGCategory *category = malloc(sizeof(XDGCategory));
+    KeyValuePair *category = malloc(sizeof(KeyValuePair));
     category->key = strdup(key);
     category->value = value;
 
     return category;
 }
 
-static void DestroyCategory(XDGCategory *category)
+static void DestroyCategory(KeyValuePair *category)
 {
     free(category->key);
     free(category);
 }
 
-static XDGDesktopEntry *CreateEntry(XDGCategory *category, XDGCategory *extra_category, char *name, char *exec,
+static XDGDesktopEntry *CreateEntry(KeyValuePair *category, KeyValuePair *extra_category, char *name, char *exec,
                                     char *icon, bool terminal_required)
 {
     XDGDesktopEntry *entry = malloc(sizeof(XDGDesktopEntry));
@@ -296,7 +244,7 @@ static XDGDesktopEntry *GetCoreProgram(XDGDesktopEntries *entries, int extra_cat
     // Couldn't find it, let's search for the first valid one
     for (unsigned int i = 0; i < entries->size; i++)
     {
-        XDGCategory *extra = entries->data[i]->extra_category;
+        KeyValuePair *extra = entries->data[i]->extra_category;
 
         if (extra->value == extra_category)
         {
@@ -353,7 +301,6 @@ static const char *bad_args[] =
 
 };
 
-
 static void RemoveSubStrAndShiftL(char *str, const char *substr)
 {
     char *found = strstr(str, substr);
@@ -409,7 +356,6 @@ static char *ParseExec(char *exec)
         if (strstr(temp, bad_args[i]) != NULL)
         {
             RemoveSubStrNoOverlap(temp, bad_args[i]);
-            //StringRemoveSubString(temp, bad_args[i]);
         }
     }
 
@@ -418,7 +364,7 @@ static char *ParseExec(char *exec)
     return temp;
 }
 
-static XDGCategory *ParseCategories(char *categories)
+static KeyValuePair *ParseCategories(char *categories)
 {
     printf("Listed categories: %s\n", categories);
 
@@ -428,7 +374,7 @@ static XDGCategory *ParseCategories(char *categories)
     {
         for (unsigned int i = 0; i < ARRAY_SIZE(xdg_main_categories); i++)
         {
-            XDGCategory *category = &xdg_main_categories[i];
+            KeyValuePair *category = &xdg_main_categories[i];
             if (strcmp(token, category->key) == 0)
             {
                 printf("Found valid category: %s\n", token);
@@ -446,7 +392,7 @@ static XDGCategory *ParseCategories(char *categories)
     return NULL;
 }
 
-static XDGCategory *ParseAdditionalCategories(char *categories)
+static KeyValuePair *ParseAdditionalCategories(char *categories)
 {
     printf("Listed additional categories: %s\n", categories);
 
@@ -456,7 +402,7 @@ static XDGCategory *ParseAdditionalCategories(char *categories)
     {
         for (unsigned int i = 0; i < ARRAY_SIZE(xdg_extra_categories); i++)
         {
-            XDGCategory *category = &xdg_extra_categories[i];
+            KeyValuePair *category = &xdg_extra_categories[i];
             if (strcmp(token, category->key) == 0)
             {
                 printf("Found valid category: %s\n", token);
@@ -487,8 +433,8 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
     size_t len = 0;
     char *line = NULL;
 
-    XDGCategory *main_category = NULL;
-    XDGCategory *extra_category = NULL;
+    KeyValuePair *main_category = NULL;
+    KeyValuePair *extra_category = NULL;
     bool application = false;
     bool icon_exists = false;
     //bool category_exists = false;
@@ -517,58 +463,66 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
         if (value == NULL)
             continue; // Not a key-value pair
 
-        /*
-        bool skip = false;
-        for (unsigned int i = 0; i < ARRAY_SIZE(xdg_parse_blacklist); i++)
+        for (unsigned int i = 0; i < ARRAY_SIZE(xdg_keys); i++)
         {
-            if (strcmp(key, xdg_parse_blacklist[i]) == 0)
-                skip = true;
-        }
+            if (strcmp(key, xdg_keys[i].key) == 0)
+            {
+                switch (xdg_keys[i].value)
+                {
+                    case Type:
+                    {
+                        // Ignore links and directories for now...
+                        if (strcmp(value, "Application") == 0)
+                            application = true;
+                        break;
+                    }
 
-        if (skip)
-            continue;
-        */
+                    case Name:
+                        strcpy(name, value);
+                    break;
+                    case GenericName:
+                    break;
+                    case Comment:
+                    break;
+                    case Icon:
+                    {
+                        icon_exists = true;
+                        strcpy(icon, value);
+                        break;
+                    }
 
-        if (strcmp(key, "Type") == 0)
-        {
-            // Ignore Links and Directories for now...
-            if (strcmp(value, "Application") == 0)
-                application = true;
-        }
+                    case Hidden:
+                    break;
+                    case TryExec:
+                    break;
+                    case Exec:
+                        strcpy(exec, ParseExec(value));
+                    break;
+                    case Path:
+                    break;
+                    case Terminal:
+                        terminal_required = StringToBool(value);
+                    break;
+                    case MimeType:
+                    break;
+                    case Categories:
+                    {
+                        // This is needed since strtok_r is destructive
+                        char temp[64];
+                        strcpy(temp, value);
+                        main_category = ParseCategories(temp);
+                        extra_category = ParseAdditionalCategories(value);
+                        break;
+                    }
 
-        if (strcmp(key, "Name") == 0)
-        {
-            strcpy(name, value);
-        }
+                    case URL:
+                    break;
 
-        if (strcmp(key, "Exec") == 0)
-        {
-            strcpy(exec, ParseExec(value));
-        }
-
-        if (strcmp(key, "Icon") == 0)
-        {
-            icon_exists = true;
-            strcpy(icon, value);
-        }
-
-        if (strcmp(key, "Terminal") == 0)
-        {
-            terminal_required = StringToBool(value);
-        }
-
-        if (strcmp(key, "Categories") == 0)
-        {
-            // This is needed since strtok_r is destructive
-            char temp[64];
-            strcpy(temp, value);
-            main_category = ParseCategories(temp);
-
-            extra_category = ParseAdditionalCategories(value);
-
-            //category_exists = true;
-            //if (extra_category)
-            //    extra_category_exists = true
+                    default:
+                        printf("Invalid or ingored category \"%s\" contains \"%s\"\n", xdg_keys[i].key, value);
+                    break;
+                }
+            }
         }
     }
 
@@ -623,39 +577,6 @@ static int LoadDesktopEntries(XDGDesktopEntries *entries)
 
     return closedir(dentry_dir);
 }
-
-/* validates a port option (must be positive) */
-/*
-int conf_validate_port(cfg_t *cfg, cfg_opt_t *opt)
-{
-    int value = cfg_opt_getnint(opt, 0);
-
-    if (value <= 0) {
-        cfg_error(cfg, "invalid port %d in section '%s'", value, cfg_name(cfg));
-        return -1;
-    }
-    return 0;
-}*/
-/* parse values for the auto-create-bookmark option */
-/*
-int parse_tray_position(cfg_t *cfg, cfg_opt_t *opt, const char *value)
-{
-    if (strcmp(value, "bottom") == 0)
-        return Bottom;
-    if (strcmp(value, "top") == 0)
-        return Top;
-    if (strcmp(value, "left") == 0)
-        return Left;
-    if (strcmp(value, "right") == 0)
-        return Right;
-    //else {
-    //cfg_error(cfg, "invalid value for option '%s': %s", cfg_opt_name(opt), value);
-    //    return -1;
-    //}
-    cfg_error(cfg, "invalid value for option '%s': %s", cfg_opt_name(opt), value);
-    return Bottom;
-}
-*/
 
 static TrayPositions GetTrayPosition(const char *tpos)
 {
@@ -798,10 +719,9 @@ static void WriteJWMRootMenuCategoryList(XDGDesktopEntries *entries, FILE *fp, c
 
     for (size_t i = 0; i < entries->size; i++)
     {
-        XDGCategory *temp = entries->data[i]->category;
-        if (strcmp(temp->key, category) == 0)
+        XDGDesktopEntry *entry = entries->data[i];
+        if (strcmp(entry->category->key, category) == 0)
         {
-            XDGDesktopEntry *entry = entries->data[i];
             if (!entry->terminal_required)
             {
                 fprintf(fp, "           <Program icon=\"%s\" label=\"%s\">%s</Program>\n",
@@ -877,7 +797,6 @@ static void GenJWMRootMenu(JWMRootMenu *root_menu, XDGDesktopEntries *entries)
 
 int main()
 {
-
     cfg_opt_t opts[] =
     {
         CFG_STR("global_terminal", "x-terminal-emulator", CFGF_NONE),
@@ -925,7 +844,6 @@ int main()
 
     root_menu->height = cfg_getint(cfg, "rootmenu_height");
 
-
     XDGDesktopEntries *entries = EntriesCreateArray(100);
     LoadDesktopEntries(entries);
 
@@ -946,4 +864,3 @@ int main()
 
     return 0;
 }
-
