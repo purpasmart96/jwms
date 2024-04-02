@@ -36,7 +36,7 @@ $(REL_DIR)/%.o: src/%.c
 	$(CC) $(REL_FLAGS) $(CFLAGS) -c -o $@ $<
 
 debug: $(DBG_BIN)
-	cp $< $(BIN)
+	@cp $< $(BIN)
 
 $(DBG_BIN): $(DBG_OBJS)
 	$(CC) $(DBG_FLAGS) $(CFLAGS) -o $@ $^ $(LDFLAGS)
