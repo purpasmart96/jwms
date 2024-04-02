@@ -29,21 +29,9 @@ static size_t Hash(const char *key)
     return hash;
 }
 
-static unsigned int Hash2(const char *key)
-{
-    // Simple hash function (djb2)
-    unsigned int hash = 5381;
-    int c;
-    while ((c = *key++))
-    {
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-    }
-    return hash;
-}
-
 HashMap *HashMapCreate(void)
 {
-    HashMap *map = malloc(sizeof(HashMap));
+    HashMap *map = malloc(sizeof(*map));
     map->entries = malloc(sizeof(Key *) * CAPACITY_START);
     for (size_t i = 0; i < CAPACITY_START; i++)
     {
@@ -69,11 +57,9 @@ void HashMapResize(HashMap *map)
     {
         if (map->entries[i] != NULL)
         {
-            //size_t index = map->entries[i]->hash % new_capacity;
             size_t index = map->entries[i]->hash & (new_capacity - 1);
             while (new_entries[index] != NULL)
             {
-                //index = (index + 1) % new_capacity;
                 index = (index + 1) & (new_capacity - 1);
             }
 
@@ -94,10 +80,8 @@ void HashMapInsert(HashMap *map, const char *key, const char *value)
     }
 
     size_t hash = Hash(key);
-
     char *temp_value = strdup(value);
 
-    //size_t index = hash % map->capacity;
     size_t index = hash & (map->capacity - 1);
 
     while (map->entries[index] != NULL)
@@ -108,8 +92,7 @@ void HashMapInsert(HashMap *map, const char *key, const char *value)
             map->entries[index]->value = temp_value;
             return;
         }
-
-        //index = (index + 1) % map->capacity;
+        // Open addressing
         index = (index + 1) & (map->capacity - 1);
     }
 
@@ -142,7 +125,6 @@ const char *HashMapGet(HashMap *map, const char *key)
             return map->entries[index]->value;
         }
         // Open addressing
-        //index = (index + 1) % map->capacity;
         index = (index + 1) & (map->capacity - 1);
     }
 
@@ -289,4 +271,3 @@ void HashSetInsert(HashSet *set, const char *key)
     set->entries[index] = new_node;
     set->size++;
 }
-

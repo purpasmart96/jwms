@@ -1,4 +1,4 @@
 #!/bin/bash
 mkdir -p build
 cd build
-gcc ../hashing.c ../list.c ../jwms.c -o jwms -O0 -g -Wall -Wextra -lconfuse -lbsd
+gcc ../src/hashing.c ../src/list.c ../src/ini.c ../src/jwms.c -o jwms -Og -g -Wall -Wextra -lconfuse -lbsd

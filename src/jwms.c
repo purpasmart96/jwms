@@ -4,18 +4,18 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
-
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-//#include <pwd.h>
 
 #include <bsd/string.h>
 #include <confuse.h>
 
+#include "hashing.h"
+#include "ini.h"
 #include "jwms.h"
 
 static KeyValuePair xdg_keys[] =
@@ -45,9 +45,7 @@ static KeyValuePair xdg_keys[] =
     {"URL",                  URL                 },
     {"PrefersNonDefaultGPU", PrefersNonDefaultGPU},
     {"SingleMainWindow",     SingleMainWindow    }
-
 };
-
 
 static KeyValuePair xdg_main_categories[] =
 {
@@ -298,7 +296,6 @@ static const char *bad_args[] =
     "%f",
     "--player-operation-mode",
     "--pause"
-
 };
 
 static void RemoveSubStrAndShiftL(char *str, const char *substr)
@@ -319,7 +316,6 @@ static void RemoveSubStrAndShiftL(char *str, const char *substr)
     }
 
     str[length] = '\0';
-
 }
 
 static void RemoveSubStrNoOverlap(char *str, const char *substr)
@@ -850,6 +846,15 @@ int main()
     GenJWMRootMenu(root_menu, entries);
     GenJWMTray(tray, entries);
     EntriesPrint(entries);
+
+    // Hashmap test
+    IniFile *icon_theme = IniFileLoad("/usr/share/icons/hicolor/index.theme");
+    if (icon_theme != NULL)
+    {
+        IniPrintAll(icon_theme);
+        printf("Icon Directories: %s\n", IniGetString(icon_theme, "Icon Theme:Directories"));
+        IniDestroy(icon_theme);
+    }
 
     // Test
     XDGDesktopEntry *entry = EntriesSearchExec(entries, "firefox");
