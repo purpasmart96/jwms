@@ -11,11 +11,14 @@ static int running = 1;
 
 static void SignalHandler(int signal)
 {
-    if (signal == SIGKILL || signal == SIGTERM || signal == SIGINT)
+    switch (signal)
     {
-        running = 0;
-        //syslog(LOG_NOTICE, "My daemon was killed.");
-        //exit(0);
+        case SIGINT:
+        case SIGTERM:
+            running = 0;
+            break;
+        default:
+            break;
     }
 }
    
@@ -44,7 +47,6 @@ static void jwms_daemon()
 
     signal(SIGINT, SignalHandler);
     signal(SIGTERM, SignalHandler);
-    signal(SIGKILL, SignalHandler);
     
     // Fork off for the second time
     pid = fork();
@@ -64,7 +66,7 @@ static void jwms_daemon()
     chdir("/");
     
     // Close all open file descriptors
-    for (int x = sysconf(_SC_OPEN_MAX); x>=0; x--)
+    for (int x = sysconf(_SC_OPEN_MAX); x >= 0; x--)
     {
         close (x);
     }
@@ -80,7 +82,6 @@ int main()
 
     // Call the child
     //const char *home = getenv("HOME");
-    //execl("/home/matt/Documents/jwms/jwms", "jwms", NULL);
     // This is obvously just temporary...
     int ret = system("/home/matt/Documents/jwms/jwms");
     if (ret != 0)

@@ -2,12 +2,10 @@ CC:=gcc
 CFLAGS:=-Wall -Wextra
 LDFLAGS:=-lconfuse -lbsd
 REL_FLAGS:=-O2
-DBG_FLAGS:=-g -Og
+DBG_FLAGS:=-g -O0 -pg
 
 # Posix compatiable version of $(wildcard)
 SRCS:=$(shell echo src/*.c)
-#SRCS=src/ini.c src/hashing.c src/jwms.c
-#SRCS:=$(wildcard src/*.c)
 OBJS:=$(SRCS:src/%.c=%.o)
 
 BUILD_DIR:=build
