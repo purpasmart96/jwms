@@ -7,10 +7,13 @@ typedef struct
     size_t size;
     size_t capacity;
     void **data;
+    bool dirty;
 } DArray;
 
 //void DArrayDestroyElement(void *element, void (*GenericDestroy)(void*));
 DArray *DArrayCreate(size_t capacity, size_t data_size);
+void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallback)(void*, const void*));
+void DArraySort(DArray *darray, int (*CompareCallback)(const void*, const void*));
 void DArrayPrint(DArray *darray, void (*PrintCallback)(void*));
 void **DArrayResize(DArray *darray, size_t capacity);
 void DArrayDestroy(DArray *darray, void (*DestroyCallback)(void*));

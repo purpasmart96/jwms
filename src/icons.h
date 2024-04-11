@@ -35,7 +35,8 @@ typedef struct
 {
     char *name;
     DArray *icons;
-    //HashMap *map;
+    HashMap2 *icons2;
+    List *paths;
     //char  **parents;
     //bool valid;
     //char **gtk_caches;
@@ -47,6 +48,8 @@ char *GetCurrentGTKIconThemeName();
 //char *LookupIcon(char *icon_name, int size, int scale, char *theme);
 char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale);
 char *FindIcon(const char *icon, int size, int scale);
+//List *FindAllIcons(List *icons, int size, int scale);
+HashMap *FindAllIcons(List *icons, int size, int scale);
 //void TestPrintSections(HashMap *map);
 //XDGIcon *LookupIconHelper(XDGIcon *icon_dir_info, char *icon_name, char *theme);
 

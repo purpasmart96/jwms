@@ -6,7 +6,7 @@
 
 #include "list.h"
 
-List *ListCreate()
+List *ListCreate(void)
 {
     List *list = malloc(sizeof(*list));
     if (list == NULL)
@@ -51,16 +51,16 @@ bool ListContains(List *list, void *item)
     return false;
 }
 
-void ListAdd(List *list, void *item, size_t size)
+void ListAdd(List *list, void *item, size_t data_size)
 {
     Node *new_node = malloc(sizeof(*new_node));
     if (new_node == NULL)
         return;
 
-    new_node->data = malloc(size);
+    new_node->data = malloc(data_size);
     new_node->next = list->head;
 
-    memcpy(new_node->data, item, size);
+    memcpy(new_node->data, item, data_size);
     list->head = new_node;
     list->size++;
 }

@@ -2,7 +2,7 @@ CC:=gcc
 CFLAGS:=-Wall -Wextra
 LDFLAGS:=-lconfuse -lbsd
 REL_FLAGS:=-O2
-DBG_FLAGS:=-g -O0 -pg
+DBG_FLAGS:=-g -O0
 
 # Posix compatiable version of $(wildcard)
 SRCS:=$(shell echo src/*.c)

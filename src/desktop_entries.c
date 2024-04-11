@@ -1,4 +1,5 @@
 
+#include <libgen.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +10,7 @@
 #include <errno.h>
 
 #include <bsd/string.h>
+#include <string.h>
 
 #include "darray.h"
 #include "jwms.h"
@@ -43,7 +45,6 @@ static KeyValuePair xdg_keys[] =
     {"SingleMainWindow",     SingleMainWindow    }
 
 };
-
 
 static const KeyValuePair xdg_main_categories[] =
 {
@@ -202,29 +203,95 @@ void EntriesDestroy(DArray *entries)
     DArrayDestroy(entries, DestroyEntry);
 }
 
-XDGDesktopEntry *EntriesSearchExec(DArray *entries, const char *key)
+static int ProgramCmp(void *a, void *b)
 {
-    for (size_t i = 0; i < entries->size; i++)
+    XDGDesktopEntry *entry_a = a;
+    XDGDesktopEntry *entry_b = b;
+    if ((strcmp(entry_a->exec, entry_b->exec) == 0) && entry_a->extra_category == entry_b->extra_category)
+        return 0;
+    return -1;
+}
+
+static int BrowserCmp(void *a, void *b)
+{
+    XDGDesktopEntry *entry_a = a;
+    XDGDesktopEntry *entry_b = b;
+    if ((strcmp(entry_a->exec, entry_b->exec) == 0) && entry_a->extra_category == entry_b->extra_category)
+        return 0;
+    return -1;
+}
+
+static int ExecCmp(void *a, const void *b)
+{
+    XDGDesktopEntry *entry_a = a;
+    const char *exec = b;
+    return strcmp(entry_a->exec, exec);
+}
+
+void *EntriesBinarySearchExec(DArray *entries, const void *target)
+{
+    return DArrayBinarySearch(entries, target, ExecCmp);
+}
+
+XDGDesktopEntry *BinarySearchExec(DArray *darray, const char *target)
+{
+    size_t left = 0;
+    size_t right = darray->size - 1;
+    while (left <= right)
     {
-        XDGDesktopEntry *entry = entries->data[i];
-        if (entry->exec != NULL)
-            if (strstr(entry->exec, key) != NULL)
-                return entry;
+        size_t mid = left + (right - left) / 2;
+        XDGDesktopEntry *index = darray->data[mid];
+        int cmp = strcmp(index->exec, target);
+
+        if (cmp == 0)
+        {
+            return index;
+        }
+        else if (cmp < 0) //  returns -1 if s1 < s2, 1 if s1 > s2 and 0 if s1 = s2.
+        {
+            left = mid + 1;
+        }
+        else
+        {
+            right = mid - 1;
+        }
+
     }
     return NULL;
 }
 
+static int EntrySortCmp(const void *a, const void *b )
+{
+    const XDGDesktopEntry *entry_a = *(XDGDesktopEntry**)a;
+    const XDGDesktopEntry *entry_b = *(XDGDesktopEntry**)b;
+
+    int val = strcmp(entry_a->exec, entry_b->exec);
+
+    return val;
+}
+
+void EntriesSort(DArray *entries)
+{
+    DArraySort(entries, EntrySortCmp);
+}
+
+XDGDesktopEntry *EntriesSearchExec(DArray *entries, const char *key)
+{
+    return EntriesBinarySearchExec(entries, key);
+}
+
 XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_category, const char *name)
 {
-    for (size_t i = 0; i < entries->size; i++)
-    {
-        XDGDesktopEntry *entry = entries->data[i];
-        if (entry->exec != NULL)
-            if ((strcmp(entry->exec, name) == 0) && entry->extra_category == extra_category)
-                return entry;
-    }
+    char *base_name = basename(strdup(name)); 
+    XDGDesktopEntry *entry = EntriesBinarySearchExec(entries, base_name);
+    if (entry != NULL)
+        if (entry->extra_category == extra_category)
+        {
+            free(base_name);
+            return entry;
+        }
 
-    printf("Couldn't find %s. Finding another one\n", name);
+    printf("Couldn't find %s. Finding another one\n", base_name);
     // Couldn't find it, let's search for the first valid one
     for (unsigned int i = 0; i < entries->size; i++)
     {
@@ -233,11 +300,13 @@ XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_c
 
         if (entry->extra_category == extra_category)
         {
+            free(base_name);
             // Found one, let's use it
             return entry;
         }
     }
 
+    free(base_name);
     return NULL;
 }
 
@@ -256,7 +325,7 @@ static void ParseExec(XDGDesktopEntry *entry, const char *exec)
 
 static void ParseCategories(XDGDesktopEntry *entry, char *categories)
 {
-    printf("Listed categories: %s\n", categories);
+    //printf("Listed categories: %s\n", categories);
 
     char *reserved;
     char *token = strtok_r(categories, ";", &reserved);
@@ -286,7 +355,7 @@ static void ParseCategories(XDGDesktopEntry *entry, char *categories)
     }
 }
 
-static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, char *value, bool *application, bool *icon_exists)
+static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, char *value, bool *application, bool *icon_exists, bool *has_exec)
 {
     switch (key_type)
     {
@@ -325,17 +394,19 @@ static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         break;
         case TryExec:
         {
-            printf("Found TryExec: %s\n", value);
+            //printf("Found TryExec: %s\n", value);
             break;
         }
         case Exec:
         {
+            //const char *stripped_exec = basename(value);
             ParseExec(entry, value);
+            *has_exec = true;
             break;
         }
         case Path:
         {
-            printf("Found Path: %s\n", value);
+            //printf("Found Path: %s\n", value);
             break;
         }
         case Terminal:
@@ -345,7 +416,7 @@ static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         }
         case MimeType:
         {
-            printf("Found MimeType: %s\n", value);
+            //printf("Found MimeType: %s\n", value);
             break;
         }
         case Categories:
@@ -357,7 +428,7 @@ static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         break;
 
         default:
-            printf("Invalid or ingored category \"%s\" contains \"%s\"\n", key, value);
+            //printf("Invalid or ingored category \"%s\" contains \"%s\"\n", key, value);
         break;
     }
     return false;
@@ -379,6 +450,7 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
 
     bool application = false;
     bool icon_exists = false;
+    bool has_exec = false;
     XDGDesktopEntry *entry = CreateEmptyEntry();
     bool is_desktop_entry = false;
     // Read line by line
@@ -418,7 +490,7 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
             {
                 if (strcmp(key, xdg_keys[i].key) == 0)
                 {
-                    ParseDesktopEntry(entry, i, key, value, &application, &icon_exists);
+                    ParseDesktopEntry(entry, i, key, value, &application, &icon_exists, &has_exec);
                     break;
                 }
             }
@@ -428,7 +500,7 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
     fclose(fp);
     free(line);
 
-    if (application && icon_exists)
+    if (icon_exists && application && has_exec)
         return entry;
 
     DestroyEntry(entry);

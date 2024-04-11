@@ -14,8 +14,8 @@ typedef struct List
     Node *head;
 } List;
 
-List *ListCreate();
-void ListAdd(List *list, void *item, size_t size);
+List *ListCreate(void);
+void ListAdd(List *list, void *item, size_t data_size);
 void ListInsert(List *list, void* item);
 void ListPrint(List *list);
 void ListDestroy(List *list);

@@ -7,14 +7,14 @@
 
 #include "darray.h"
 
-
 DArray *DArrayCreate(size_t capacity, size_t data_size)
 {
     DArray *darray = malloc(sizeof(*darray));
     darray->capacity = capacity;
     darray->data_size = data_size;
-    darray->data = malloc(data_size * darray->capacity);
+    darray->data = malloc(sizeof(void*) * darray->capacity);
     darray->size = 0;
+    darray->dirty = true;
 
     return darray;
 }
@@ -32,7 +32,7 @@ void DArrayPrint(DArray *darray, void (*PrintCallback)(void*))
 void **DArrayResize(DArray *darray, size_t capacity)
 {
     darray->capacity = capacity;
-    void **temp = realloc(darray->data, darray->data_size * darray->capacity);
+    void **temp = realloc(darray->data, sizeof(void*) * darray->capacity);
 
     if (!temp)
     {
@@ -77,8 +77,48 @@ int DArrayAdd(DArray *darray, void *element)
 
     // Push an element on the top of it and increase its size by one
     darray->data[darray->size++] = element;
-
+    darray->dirty = true;
     return 0;
+}
+
+void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallback)(void*, const void*))
+{
+    if (darray->dirty)
+        return NULL;
+
+    size_t left = 0;
+    size_t right = darray->size - 1;
+    while (left <= right)
+    {
+        size_t mid = left + (right - left) / 2;
+        void *index = darray->data[mid];
+
+        int cmp = CompareCallback(index, target);
+        if (cmp == 0)
+        {
+            return index;
+        }
+        else if (cmp < 0)
+        {
+            left = mid + 1;
+        }
+        else
+        {
+            right = mid - 1;
+        }
+
+    }
+    return NULL;
+}
+
+// Only sorts if the array is unsorted
+void DArraySort(DArray *darray, int (*CompareCallback)(const void*, const void*))
+{
+    if (darray->dirty)
+    {
+        qsort(darray->data, darray->size, sizeof(void*), CompareCallback);
+        darray->dirty = false;
+    }
 }
 
 // Not Tested

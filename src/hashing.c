@@ -43,10 +43,57 @@ HashMap *HashMapCreate(void)
     return map;
 }
 
+HashMap2 *HashMapCreate2(size_t data_size, void (*DestroyCallback)(void*), void (*PrintCallback)(void*))
+{
+    HashMap2 *map = malloc(sizeof(*map));
+    map->entries = malloc(sizeof(Key2*) * CAPACITY_START);
+
+    for (size_t i = 0; i < CAPACITY_START; i++)
+    {
+        map->entries[i] = NULL;
+    }
+    map->size = 0;
+    map->data_size = data_size;
+    map->capacity = CAPACITY_START;
+    map->DestroyCallback = DestroyCallback;
+    map->PrintCallback = PrintCallback;
+
+    return map;
+}
+
 void HashMapResize(HashMap *map)
 {
     size_t new_capacity = map->capacity * 2;
     Key **new_entries = malloc(sizeof(Key *) * new_capacity);
+
+    for (size_t i = 0; i < new_capacity; i++)
+    {
+        new_entries[i] = NULL;
+    }
+
+    for (size_t i = 0; i < map->capacity; i++)
+    {
+        if (map->entries[i] != NULL)
+        {
+            size_t index = map->entries[i]->hash & (new_capacity - 1);
+            while (new_entries[index] != NULL)
+            {
+                index = (index + 1) & (new_capacity - 1);
+            }
+
+            new_entries[index] = map->entries[i];
+        }
+    }
+
+    free(map->entries);
+    map->entries = new_entries;
+    map->capacity = new_capacity;
+}
+
+void HashMapResize2(HashMap2 *map)
+{
+    size_t new_capacity = map->capacity * 2;
+    Key2 **new_entries = malloc(sizeof(Key2*) * new_capacity);
 
     for (size_t i = 0; i < new_capacity; i++)
     {
@@ -105,6 +152,38 @@ void HashMapInsert(HashMap *map, const char *key, const char *value)
     map->size++;
 }
 
+void HashMapInsert2(HashMap2 *map, const char *key, void *value)
+{
+    if ((double)map->size / map->capacity > LOAD_FACTOR)
+    {
+        HashMapResize2(map);
+    }
+
+    size_t hash = Hash(key);
+
+    size_t index = hash & (map->capacity - 1);
+
+    while (map->entries[index] != NULL)
+    {
+        if (map->entries[index]->hash == hash && strcmp(map->entries[index]->key, key) == 0)
+        {
+            map->DestroyCallback(map->entries[index]->value);
+            map->entries[index]->value = value;
+            return;
+        }
+        // Open addressing
+        index = (index + 1) & (map->capacity - 1);
+    }
+
+    Key2 *new_entry = malloc(sizeof(Key2));
+    new_entry->key = strdup(key);
+    new_entry->value = value;
+    new_entry->hash = hash;
+
+    map->entries[index] = new_entry;
+    map->size++;
+}
+
 void HashMapInsertWithSection(HashMap *map, const char *section, const char *key, const char *value)
 {
     char combined_key[256];
@@ -113,6 +192,25 @@ void HashMapInsertWithSection(HashMap *map, const char *section, const char *key
 }
 
 const char *HashMapGet(HashMap *map, const char *key)
+{
+    size_t hash = Hash(key);
+    //size_t index = hash % map->capacity;
+    size_t index = hash & (map->capacity - 1);
+
+    while (map->entries[index] != NULL)
+    {
+        if (map->entries[index]->hash == hash && strcmp(map->entries[index]->key, key) == 0)
+        {
+            return map->entries[index]->value;
+        }
+        // Open addressing
+        index = (index + 1) & (map->capacity - 1);
+    }
+
+    return NULL;
+}
+
+void *HashMapGet2(HashMap2 *map, const char *key)
 {
     size_t hash = Hash(key);
     //size_t index = hash % map->capacity;
@@ -147,6 +245,23 @@ void HashMapPrint(HashMap *map)
     printf("\n");
 }
 
+void HashMapPrint2(HashMap2 *map)
+{
+    printf("\n");
+    for (size_t i = 0; i < map->capacity; i++)
+    {
+        if (map->entries[i] != NULL)
+        {
+            printf("Key      : %s\n", map->entries[i]->key);
+            printf("Key Hash : 0x%08lX\n", map->entries[i]->hash);
+            //printf("Value    : %s\n\n", map->entries[i]->value);
+            map->PrintCallback(map->entries[i]->value);
+        }
+    }
+
+    printf("\n");
+}
+
 void HashMapDestroy(HashMap *map)
 {
     for (size_t i = 0; i < map->capacity; i++)
@@ -155,6 +270,23 @@ void HashMapDestroy(HashMap *map)
         {
             free(map->entries[i]->key);
             free(map->entries[i]->value);
+            free(map->entries[i]);
+        }
+    }
+
+    free(map->entries);
+    free(map);
+}
+
+void HashMapDestroy2(HashMap2 *map)
+{
+    for (size_t i = 0; i < map->capacity; i++)
+    {
+        if (map->entries[i] != NULL)
+        {
+            free(map->entries[i]->key);
+            //free(map->entries[i]->value);
+            map->DestroyCallback(map->entries[i]->value);
             free(map->entries[i]);
         }
     }

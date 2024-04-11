@@ -16,7 +16,7 @@
 
 #include "hashing.h"
 #include "darray.h"
-//#include "list.h"
+#include "list.h"
 #include "icons.h"
 
 
@@ -110,6 +110,7 @@ static int ParseInt(const char *str)
 }
 
 static void ParseThemeIcons(DArray *icons, const char *theme)
+//static void ParseThemeIcons(HashMap2 *icons, List *icon_paths, const char *theme)
 {
     //FILE *file = fopen("/usr/share/icons/Papirus-Dark/index.theme", "r");
     //FILE *file = fopen("/usr/share/icons/breeze-dark/index.theme", "r");
@@ -156,7 +157,7 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
         // Check if line contains a section header
         if (line[0] == '[' && line[strlen(line) - 1] == ']')
         {
-            sscanf(line, "[%[^]]", section);
+            sscanf(line, "[%127[^]]", section);
             if (strcmp(section, "Icon Theme") != 0)
             {
                 //ListAdd(dirs, section, strlen(section) + 1);
@@ -168,7 +169,7 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
         // Parse key-value pairs in the section
         if (in_section)
         {
-            if (sscanf(line, "%[^=]=%s", key, value) == 2)
+            if (sscanf(line, "%127[^=]=%s", key, value) == 2)
             {
                 if (strcmp(key, "Size") == 0)
                 {
@@ -203,13 +204,17 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
             {
                 XDGIcon *icon = IconCreate(section, type, size, min_size, max_size, scale, threshold);
                 if (icon != NULL)
+                {
                     DArrayAdd(icons, icon);
+                    //ListAdd(icon_paths, section, strlen(section) + 1);
+                    //HashMapInsert2(icons, section, icon);
+                }
                 scale = 1;
                 size = 0;
                 min_size = -1;
                 max_size = -1;
                 threshold = 2;
-                strcpy(context, "");
+                strcpy(context, "\0");
                 type = Threshold;
             }
         }
@@ -239,11 +244,11 @@ void IconDestroy(void *icon_dir_ptr)
     free(icon_dir);
 }
 
-//void IconDestroy(XDGIcon *icon_dir)
-//{
-//    free(icon_dir->path);
-//    free(icon_dir);
-//}
+void IconPrint(void *icon_dir_ptr)
+{
+    XDGIcon *icon_dir = icon_dir_ptr;
+    printf("%s\n",icon_dir->path);
+}
 
 static void RemoveQuotes(char *str)
 {
@@ -261,9 +266,11 @@ static void RemoveQuotes(char *str)
 IconTheme *LoadIconTheme(const char *theme_name)
 {
     IconTheme *theme = malloc(sizeof(*theme));
-    //theme->icon_dirs = ListCreate();
+    //theme->paths = ListCreate();
     theme->name = strdup(theme_name);
     theme->icons = DArrayCreate(64, sizeof(XDGIcon*));
+    //theme->icons2 = HashMapCreate2(sizeof(XDGIcon*), IconDestroy, IconPrint);
+    //ParseThemeIcons(theme->icons2, theme->paths, theme_name);
     ParseThemeIcons(theme->icons, theme_name);
 
     return theme;
@@ -271,6 +278,8 @@ IconTheme *LoadIconTheme(const char *theme_name)
 
 void UnLoadIconTheme(IconTheme *icon_theme)
 {
+    //ListDestroy(icon_theme->paths);
+    //HashMapDestroy2(icon_theme->icons2);
     DArrayDestroy(icon_theme->icons, IconDestroy);
     //IconsDestroy(icon_theme->icons);
     free(icon_theme->name);
@@ -356,50 +365,6 @@ char *GetCurrentGTKIconThemeName()
     return icon_theme;
 }
 
-// Don't forget fclose!
-static FILE *GetIconThemeCfgFile(char *theme)
-{
-    char path[512];
-    const char *base = "/usr/share/icons/";
-
-    strlcpy(path, base, sizeof(path));
-    strlcat(path, theme, sizeof(path));
-    strlcat(path, "/index.theme", sizeof(path));
-
-    FILE *fp = fopen(path, "r");
-    if (fp == NULL)
-    {
-        fprintf(stderr, "Error opening configuration file for directory %s\n", path);
-        return NULL;
-    }
-
-    return fp;
-}
-
-// Hack for getting all of the sections (icon subdirs)
-void TestPrintSections(HashMap *map)
-{
-    char section[64];
-    printf("\n");
-    for (size_t i = 0; i < map->capacity; i++)
-    {
-        if (map->entries[i] != NULL)
-        {
-            if (strstr(map->entries[i]->key, ":Size") != NULL)
-            {
-                strcpy(section, map->entries[i]->key);
-                char *reserved;
-                char *section_name = strtok_r(section, ":", &reserved);
-                printf("Section: %s\n", section_name);
-            }
-            //printf("Key      : %s\n", map->entries[i]->key);
-            //printf("Key Hash : 0x%08X\n", map->entries[i]->hash);
-            //printf("Value    : %s\n\n", map->entries[i]->value);
-        }
-    }
-
-    printf("\n");
-}
 
 bool DirectoryMatchesSize(XDGIcon *icon, int icon_size, int icon_scale)
 {
@@ -449,6 +414,9 @@ int DirectorySizeDistance(XDGIcon *icon, int icon_size, int icon_scale)
 
 char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale)
 {
+    if (access(icon_name, F_OK) == 0)
+        return strdup(icon_name);
+
     char icon_path[512];
     char closest_icon_path[512];
     const char *base_dir = "/usr/share/icons/";
@@ -457,33 +425,45 @@ char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale)
     strlcpy(theme_dir, base_dir, sizeof(theme_dir));
     strlcat(theme_dir, theme->name, sizeof(theme_dir));
 
-    const char *icon_exts[] = {"png", "svg", "xpm"};
+    const char *icon_exts[] = {".png", ".svg", ".xpm"};
     const int num_exts = 3;
 
     int min_size = INT_MAX;
 
     for (size_t i = 0; i < theme->icons->size; i++)
     {
-        // Construct the full path for each directory
         XDGIcon *current_icon = theme->icons->data[i];
-        snprintf(icon_path, sizeof(icon_path), "%s/%s", theme_dir, current_icon->path);
+
+        // Construct the full path for each directory
+        strlcpy(icon_path, theme_dir, sizeof(icon_path));
+        strlcat(icon_path, "/", sizeof(icon_path));
+        strlcat(icon_path, current_icon->path, sizeof(icon_path));
+
         if (access(icon_path, F_OK) == 0)
         {
+            char good_path[512];
+            strcpy(good_path, icon_path);
+
             for (int j = 0; j < num_exts; j++)
             {
-                snprintf(icon_path, sizeof(icon_path), "%s/%s/%s.%s", theme_dir, current_icon->path, icon_name, icon_exts[j]);
+                strlcpy(icon_path, good_path, sizeof(icon_path));
+                strlcat(icon_path, "/", sizeof(icon_path));
+                strlcat(icon_path, icon_name, sizeof(icon_path));
+                strlcat(icon_path, icon_exts[j], sizeof(icon_path));
+                //snprintf(icon_path, sizeof(icon_path), "%s/%s/%s%s", theme_dir, current_icon->path, icon_name, icon_exts[j]);
+
                 if (access(icon_path, F_OK) == 0)
                 {
-                    if (DirectoryMatchesSize(theme->icons->data[i], size, scale))
+                    if (DirectoryMatchesSize(current_icon, size, scale))
                     {
                         return strdup(icon_path);
                     }
 
-                    int size_delta = DirectorySizeDistance(theme->icons->data[i], size, scale);
+                    int size_delta = DirectorySizeDistance(current_icon, size, scale);
                     if (size_delta < min_size)
                     {
                         min_size = size_delta;
-                        snprintf(closest_icon_path, sizeof(closest_icon_path), "%s", icon_path);
+                        strlcpy(closest_icon_path, icon_path, sizeof(closest_icon_path));
                     }
                 }
             }
@@ -558,4 +538,42 @@ char *FindIcon(const char *icon, int size, int scale)
 
     //return LookupFallbackIcon(icon);
     return NULL;
+}
+
+
+HashMap *FindAllIcons(List *icons, int size, int scale)
+{
+    char *theme = GetCurrentGTKIconThemeName();
+    IconTheme *icon_theme = LoadIconTheme(theme);
+    IconTheme *default_theme = LoadIconTheme("hicolor");
+    //List *valid_icons = ListCreate();
+    HashMap *valid_icons = HashMapCreate();
+    Node *current = icons->head;
+    while (current != NULL)
+    {
+        const char *icon = (char*)current->data;
+        char *filename = LookupIcon(icon_theme, icon, size, scale);
+        if (filename != NULL)
+        {
+            HashMapInsert(valid_icons, icon, filename);
+            //ListAdd(valid_icons, filename, strlen(filename) + 1);
+        }
+        else
+        {
+            filename = LookupIcon(default_theme, icon, size, scale);
+            if (filename != NULL)
+            {
+                HashMapInsert(valid_icons, icon, filename);
+                //ListAdd(valid_icons, filename, strlen(filename) + 1);
+            }
+        }
+        free(filename);
+        current = current->next;
+    }
+
+    free(theme);
+    UnLoadIconTheme(icon_theme);
+    UnLoadIconTheme(default_theme);
+    //return LookupFallbackIcon(icon);
+    return valid_icons;
 }
