@@ -86,10 +86,7 @@ void IniDestroy(IniFile *ini)
 
 const char *IniGetString(IniFile *ini, const char *key)
 {
-    const char *value = HashMapGet(ini->map, key);
-    if (value == NULL)
-        return NULL;
-    return value;
+    return HashMapGet(ini->map, key);
 }
 
 int IniGetInt(IniFile *ini, const char *key)

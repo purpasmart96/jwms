@@ -6,6 +6,7 @@
 #include <ctype.h>
 
 #include <limits.h>
+#include <threads.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
@@ -16,9 +17,29 @@
 
 #include "hashing.h"
 #include "darray.h"
+#include "common.h"
 #include "list.h"
 #include "icons.h"
 
+
+static const Pair icon_types[] =
+{
+    {"Fixed",      Fixed      },
+    {"Scaled",     Scaled     },
+    {"Threshold",  Threshold  },
+    {"Fallback",   Fallback   },
+};
+
+static int GetIconType(char *key)
+{
+    for (int i = 0; i < ARRAY_SIZE(icon_types); i++)
+    {
+        if (strcmp(icon_types[i].key, key) == 0)
+            return i;
+    }
+
+    return -1;
+}
 
 void ParseSection(FILE *file, const char *section_name, HashMap *map)
 {
@@ -197,7 +218,11 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
                 }
                 else if (strcmp(key, "Type") == 0)
                 {
-                    //snprintf(type, 16, "%s", value);
+                    int itype = GetIconType(value);
+                    if (itype != -1)
+                    {
+                        type = (IconType)itype;
+                    }
                 }
             }
             else
@@ -525,19 +550,22 @@ char *FindIcon(const char *icon, int size, int scale)
     char *filename = FindIconHelper(icon, size, scale, theme);
     if (filename != NULL)
     {
-        free(theme);
-        return filename;
+        goto success;
     }
 
     filename = FindIconHelper(icon, size, scale, "hicolor");
     if (filename != NULL)
     {
-        free(theme);
-        return filename;
+        goto success;
     }
 
     //return LookupFallbackIcon(icon);
+    free(theme);
     return NULL;
+
+success:
+    free(theme);
+    return filename;
 }
 
 

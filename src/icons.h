@@ -1,7 +1,6 @@
 #ifndef ICONS_H
 #define ICONS_H
 
-#include "darray.h"
 typedef enum
 {
     Fixed,

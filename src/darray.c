@@ -81,7 +81,7 @@ int DArrayAdd(DArray *darray, void *element)
     return 0;
 }
 
-void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallback)(void*, const void*))
+void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallback)(const void*, const void*))
 {
     if (darray->dirty)
         return NULL;
@@ -111,14 +111,20 @@ void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallba
     return NULL;
 }
 
-// Only sorts if the array is unsorted
 void DArraySort(DArray *darray, int (*CompareCallback)(const void*, const void*))
+{
+    qsort(darray->data, darray->size, sizeof(void*), CompareCallback);
+    darray->dirty = false;
+}
+
+bool DArrayContains(DArray *darray, const void *item, int (*SortCompareCallback)(const void*, const void*), int (*SearchCompareCallback)(const void*, const void*))
 {
     if (darray->dirty)
     {
-        qsort(darray->data, darray->size, sizeof(void*), CompareCallback);
-        darray->dirty = false;
+        DArraySort(darray, SortCompareCallback);
     }
+
+    return DArrayBinarySearch(darray, item, SearchCompareCallback) != NULL ? true : false;
 }
 
 // Not Tested

@@ -42,7 +42,7 @@ int main()
     //HashMapPrint(icons_output);
 
     int result = WriteJWMConfig(entries, icons_output);
-    if (result == 0)
+    if (result != -1)
         printf("Wrote JWM config sucessfully\n");
     else
         printf("Failed to write JWM config\n");
@@ -57,17 +57,9 @@ int main()
     //}
 
     // Icon search test
-    char *icon = FindIcon("mpv", 32, 1);
-    printf("\nIcon: %s\n", icon);
-    free(icon);
-
-
-    //char *prog_icons[] = {"firefox-esr", "mpv", "cpu-x"};
-    //const int prog_size = 3;
-    //for (int i = 0; i < prog_size; i++)
-    //{
-    //    ListAdd(icons_input, prog_icons[i], strlen(prog_icons[i]) + 1);
-    //}
+    //char *icon = FindIcon("mpv", 32, 1);
+    //printf("\nIcon: %s\n", icon);
+    //free(icon);
 
     HashMapDestroy(icons_output);
     ListDestroy(icons_input);

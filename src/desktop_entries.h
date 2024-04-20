@@ -58,13 +58,6 @@ typedef enum
     SingleMainWindow
 } XDGKeyType;
 
-// Generic key value struct
-typedef struct
-{
-    char *key;
-    int value;
-} KeyValuePair;
-
 // /usr/share/applications
 typedef struct
 {
@@ -81,8 +74,8 @@ typedef struct
 
 void EntriesPrint(DArray *entries);
 void EntriesDestroy(DArray *entries);
-void BinaryInsertionSort(DArray *entries);
 void EntriesSort(DArray *entries);
+bool EntryExecExists(DArray *entries, const char *key);
 XDGDesktopEntry *EntriesSearchExec(DArray *entries, const char *key);
 XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_category, const char *name);
 int LoadDesktopEntries(DArray *entries);

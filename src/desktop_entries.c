@@ -12,11 +12,11 @@
 #include <bsd/string.h>
 #include <string.h>
 
+#include "common.h"
 #include "darray.h"
-#include "jwms.h"
 #include "desktop_entries.h"
 
-static KeyValuePair xdg_keys[] =
+static const Pair xdg_keys[] =
 {
     {"Type",                 Type                 },
     {"Version",              Version              },
@@ -43,10 +43,9 @@ static KeyValuePair xdg_keys[] =
     {"URL",                  URL                 },
     {"PrefersNonDefaultGPU", PrefersNonDefaultGPU},
     {"SingleMainWindow",     SingleMainWindow    }
-
 };
 
-static const KeyValuePair xdg_main_categories[] =
+static const Pair xdg_main_categories[] =
 {
     {"AudioVideo",  AudioVideo },
     {"Audio",       Audio      },
@@ -63,7 +62,7 @@ static const KeyValuePair xdg_main_categories[] =
     {"Utility",     Utility   }
 };
 
-static const KeyValuePair xdg_extra_categories[] =
+static const Pair xdg_extra_categories[] =
 {
     {"WebBrowser",       WebBrowser      },
     {"FileManager",      FileManager     },
@@ -77,9 +76,6 @@ static const char *bad_args[] =
     "%F",
     "%u",
     "%f",
-    "--player-operation-mode",
-    "--pause"
-
 };
 
 static XDGMainCategories GetXDGMainCategoryType(const char *category)
@@ -221,9 +217,9 @@ static int BrowserCmp(void *a, void *b)
     return -1;
 }
 
-static int ExecCmp(void *a, const void *b)
+static int ExecCmp(const void *a, const void *b)
 {
-    XDGDesktopEntry *entry_a = a;
+    const XDGDesktopEntry *entry_a = a;
     const char *exec = b;
     return strcmp(entry_a->exec, exec);
 }
@@ -231,33 +227,6 @@ static int ExecCmp(void *a, const void *b)
 void *EntriesBinarySearchExec(DArray *entries, const void *target)
 {
     return DArrayBinarySearch(entries, target, ExecCmp);
-}
-
-XDGDesktopEntry *BinarySearchExec(DArray *darray, const char *target)
-{
-    size_t left = 0;
-    size_t right = darray->size - 1;
-    while (left <= right)
-    {
-        size_t mid = left + (right - left) / 2;
-        XDGDesktopEntry *index = darray->data[mid];
-        int cmp = strcmp(index->exec, target);
-
-        if (cmp == 0)
-        {
-            return index;
-        }
-        else if (cmp < 0) //  returns -1 if s1 < s2, 1 if s1 > s2 and 0 if s1 = s2.
-        {
-            left = mid + 1;
-        }
-        else
-        {
-            right = mid - 1;
-        }
-
-    }
-    return NULL;
 }
 
 static int EntrySortCmp(const void *a, const void *b )
@@ -280,6 +249,11 @@ XDGDesktopEntry *EntriesSearchExec(DArray *entries, const char *key)
     return EntriesBinarySearchExec(entries, key);
 }
 
+bool EntryExecExists(DArray *entries, const char *key)
+{
+    return DArrayContains(entries, key, EntrySortCmp, ExecCmp);
+}
+
 XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_category, const char *name)
 {
     char *base_name = basename(strdup(name)); 
@@ -295,7 +269,6 @@ XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_c
     // Couldn't find it, let's search for the first valid one
     for (unsigned int i = 0; i < entries->size; i++)
     {
-        //KeyValuePairXDGDesktop *extra = entries->data[i];
         XDGDesktopEntry *entry = entries->data[i];
 
         if (entry->extra_category == extra_category)
@@ -347,7 +320,7 @@ static void ParseCategories(XDGDesktopEntry *entry, char *categories)
             entry->extra_category = extra;
         }
 
-        // Without this, the strtok_r below will fail
+        // We reached the end, exit the loop
         if (main != Invalid && extra != IgnoredOrInvalid)
             break;
 
@@ -355,7 +328,7 @@ static void ParseCategories(XDGDesktopEntry *entry, char *categories)
     }
 }
 
-static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, char *value, bool *application, bool *icon_exists, bool *has_exec)
+static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *value, bool *application, bool *icon_exists, bool *has_exec)
 {
     switch (key_type)
     {
@@ -490,7 +463,7 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
             {
                 if (strcmp(key, xdg_keys[i].key) == 0)
                 {
-                    ParseDesktopEntry(entry, i, key, value, &application, &icon_exists, &has_exec);
+                    ParseDesktopEntry(entry, i, value, &application, &icon_exists, &has_exec);
                     break;
                 }
             }

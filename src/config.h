@@ -1,10 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-typedef struct {
-    int height;
-} JWMRootMenu;
-
 typedef enum
 {
     Bottom,
@@ -15,19 +11,13 @@ typedef enum
 
 typedef struct
 {
-    TrayPositions tpos;
-    int height;
-    bool auto_hide;
-    int icon_spacing;
-    char *browser_name;
-    char *terminal_name;
-    char *filemanager_name;
-} JWMTray;
+    TrayPositions tray_pos;
+    int tray_height;
+    bool tray_auto_hide;
+    int tray_icon_spacing;
+    int root_menu_height;
 
-typedef struct
-{
-    JWMRootMenu *root_menu;
-    JWMTray *tray;
+    char *autogen_config_path;
     char *browser_name;
     char *terminal_name;
     char *filemanager_name;
