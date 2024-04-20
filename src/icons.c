@@ -6,7 +6,6 @@
 #include <ctype.h>
 
 #include <limits.h>
-#include <threads.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
