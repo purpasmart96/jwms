@@ -194,19 +194,14 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
         {
             fprintf(fp, " decorations=\"%s\">\n", "flat");
             fprintf(fp, "        <Font align=\"center\">Sans-10</Font>\n");
-            fprintf(fp, "        <Height>26</Height>\n");
-            fprintf(fp, "        <Width>4</Width>\n");
-            fprintf(fp, "        <Corner>1</Corner>\n");
             fprintf(fp, "        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
             fprintf(fp, "        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
-            fprintf(fp, "        <Opacity>0.9</Opacity>\n");
             fprintf(fp, "        <Outline>#FFFFFF</Outline>\n");
             fprintf(fp, "        <Active>\n");
             fprintf(fp, "            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
             fprintf(fp, "            <Background>%s</Background>\n", jwm->global_bg_color_active);
-            fprintf(fp, "            <Opacity>1.0</Opacity>\n");
-            fprintf(fp, "            <Outline>#FFFFFF</Outline>\n");
             fprintf(fp, "        </Active>\n");
+            fprintf(fp, "        <Opacity>1.0</Opacity>\n");
             break;
         }
         case PopupStyle:
