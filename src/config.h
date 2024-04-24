@@ -33,15 +33,24 @@ typedef struct
     char *global_fg_color_active;
     char *global_fg_color_inactive;
 
+    int window_height;
+    int window_width;
+    int window_corner_rounding;
     char *window_bg_color_active;
     char *window_bg_color_inactive;
     char *window_fg_color_active;
     char *window_fg_color_inactive;
+    char *window_outline_color_active;
+    char *window_outline_color_inactive;
+    float window_opacity_active;
+    float window_opacity_inactive;
 
     char *menu_bg_color_active;
     char *menu_bg_color_inactive;
     char *menu_fg_color_active;
     char *menu_fg_color_inactive;
+    char *menu_outline_color;
+    float menu_opacity;
 
     char *autogen_config_path;
     char *browser_name;
