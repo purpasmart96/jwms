@@ -15,14 +15,30 @@
 
 #include "common.h"
 #include "darray.h"
-//#include "list.h"
-//#include "hashing.h"
+#include "list.h"
+#include "hashing.h"
 //#include "ini.h"
-//#include "icons.h"
+#include "icons.h"
 #include "desktop_entries.h"
 #include "hashing.h"
 #include "config.h"
 
+
+static const char *category_icons[] = {
+    "applications-multimedia",
+    "applications-multimedia",
+    "applications-multimedia",
+    "applications-development",
+    "applications-education",
+    "applications-games",
+    "applications-graphics",
+    "applications-internet",
+    "applications-office",
+    "applications-science",
+    "preferences-desktop",
+    "applications-system",
+    "applications-utilities",
+};
 
 static const Pair style_types[] =
 {
@@ -358,12 +374,12 @@ static void GenJWMTray(JWM *jwm, DArray *entries)
     fclose(fp);
 }
 
-static void WriteJWMRootMenuCategoryList(DArray *entries, HashMap *icons, FILE *fp, XDGMainCategories category, const char *category_name, const char *overide_category_name)
+static void WriteJWMRootMenuCategoryList(DArray *entries, HashMap *icons, FILE *fp, XDGMainCategories category, const char *category_name)
 {
-    const char *menu_name = overide_category_name != NULL ? overide_category_name : category_name;
+    char *category_icon = FindIcon(category_icons[category], 32, 1);
+    fprintf(fp, "       <Menu icon=\"%s\" label=\"%s\">\n", category_icon, category_name);
+    free(category_icon);
  
-    fprintf(fp, "       <Menu icon=\"%s\" label=\"%s\">\n", category_name, menu_name);
-
     for (size_t i = 0; i < entries->size; i++)
     {
         XDGDesktopEntry *entry = entries->data[i];
@@ -415,15 +431,15 @@ static void GenJWMRootMenu(JWM *jwm, DArray *entries, HashMap *icons)
     fprintf(fp, "<JWM>\n");
     fprintf(fp, "   <RootMenu height=\"%d\" onroot=\"12\">\n", jwm->root_menu_height);
 
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Network,"Network", "Internet");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, AudioVideo,"AudioVideo", "Multimedia");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Development,"Development", NULL);
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Office,"Office", NULL);
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Graphics,"Graphics", NULL);
-    //WriteJWMRootMenuCategoryList(entries, icons, fp, Video,"Video", "Multimedia");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Settings,"Settings", NULL);
-    WriteJWMRootMenuCategoryList(entries, icons, fp, System,"System", NULL);
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Utility,"Utility", NULL);
+    WriteJWMRootMenuCategoryList(entries, icons, fp, Network, "Internet");
+    WriteJWMRootMenuCategoryList(entries, icons, fp, AudioVideo, "Multimedia");
+    WriteJWMRootMenuCategoryList(entries, icons, fp, Development, "Development");
+    WriteJWMRootMenuCategoryList(entries, icons, fp, Office, "Office");
+    WriteJWMRootMenuCategoryList(entries, icons, fp, Graphics,"Graphics");
+    //WriteJWMRootMenuCategoryList(entries, icons, fp, Video,"Multimedia");
+    WriteJWMRootMenuCategoryList(entries, icons, fp, Settings, "Settings");
+    WriteJWMRootMenuCategoryList(entries, icons, fp, System, "System");
+    WriteJWMRootMenuCategoryList(entries, icons, fp, Utility,"Utility");
 
     fprintf(fp, "   </RootMenu>\n");
     fprintf(fp, "</JWM>");

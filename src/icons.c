@@ -465,16 +465,9 @@ char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale)
 
         if (access(icon_path, F_OK) == 0)
         {
-            char good_path[512];
-            strcpy(good_path, icon_path);
-
             for (int j = 0; j < num_exts; j++)
             {
-                strlcpy(icon_path, good_path, sizeof(icon_path));
-                strlcat(icon_path, "/", sizeof(icon_path));
-                strlcat(icon_path, icon_name, sizeof(icon_path));
-                strlcat(icon_path, icon_exts[j], sizeof(icon_path));
-                //snprintf(icon_path, sizeof(icon_path), "%s/%s/%s%s", theme_dir, current_icon->path, icon_name, icon_exts[j]);
+                snprintf(icon_path, sizeof(icon_path), "%s/%s/%s%s", theme_dir, current_icon->path, icon_name, icon_exts[j]);
 
                 if (access(icon_path, F_OK) == 0)
                 {
@@ -520,6 +513,10 @@ char *LookupFallbackIcon(const char *icon)
 char *FindIconHelper(const char *icon, int size, int scale, const char *theme)
 {
     IconTheme *icon_theme = LoadIconTheme(theme);
+
+    if (icon_theme == NULL)
+        return  NULL;
+
     char *filename = LookupIcon(icon_theme, icon, size, scale);
     if (filename != NULL)
     {

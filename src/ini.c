@@ -27,7 +27,7 @@ static void IniParse(IniFile *ini)
 
         if (line[0] == '[' && line[strlen(line) - 1] == ']')
         {
-            sscanf(line, "[%[^]]", section);
+            sscanf(line, "[%127[^]]", section);
             is_section = true;
             continue;
         }
