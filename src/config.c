@@ -107,8 +107,7 @@ static int CreateJWMFolder(JWM *jwm)
     return 0;
 }
 
-// WIP
-static void GenJWMIcons(JWM *jwm, DArray *entries)
+static void GenJWMIcons(JWM *jwm)
 {
     char path[512];
     const char *fname = "icons_test";
@@ -133,6 +132,120 @@ static void GenJWMIcons(JWM *jwm, DArray *entries)
     fprintf(fp, "</JWM>");
 
     fclose(fp);
+}
+
+static int GenJWMGroup(JWM *jwm)
+{
+    char path[512];
+    const char *fname = "group_test";
+
+    strlcpy(path, jwm->autogen_config_path, sizeof(path));
+    strlcat(path, fname, sizeof(path));
+
+    FILE *fp = fopen(path, "w");
+
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error opening '%s': %s\n", path, strerror(errno));
+        return -1;
+    }
+
+    printf("Writing to %s\n", path);
+
+    // Start of the group xml file
+    fprintf(fp, "<?xml version=\"1.0\"?>\n");
+    fprintf(fp, "<JWM>\n");
+    fprintf(fp, "    <Group>\n");
+    fprintf(fp, "        <Option>tiled</Option>\n");
+    fprintf(fp, "        <Option>aerosnap</Option>\n");
+    fprintf(fp, "    </Group>\n");
+    fprintf(fp, "</JWM>\n");
+
+    fclose(fp);
+    return 0;
+}
+
+static int GenJWMPreferences(JWM *jwm)
+{
+    char path[512];
+    const char *fname = "prefs_test";
+
+    strlcpy(path, jwm->autogen_config_path, sizeof(path));
+    strlcat(path, fname, sizeof(path));
+
+    FILE *fp = fopen(path, "w");
+
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error opening '%s': %s\n", path, strerror(errno));
+        return -1;
+    }
+
+    printf("Writing to %s\n", path);
+
+    // Start of the prefs xml file
+    fprintf(fp, "<?xml version=\"1.0\"?>\n");
+    fprintf(fp, "<JWM>\n");
+    fprintf(fp, "   <Desktops width=\"2\" height=\"1\">\n");
+    fprintf(fp, "       <Background type=\"solid\">#111111</Background>\n");
+    fprintf(fp, "   </Desktops>\n");
+    fprintf(fp, "   <DoubleClickSpeed>400</DoubleClickSpeed>\n");
+    fprintf(fp, "   <DoubleClickDelta>2</DoubleClickDelta>\n");
+    fprintf(fp, "   <FocusModel>click</FocusModel>\n");
+    fprintf(fp, "   <SnapMode distance=\"10\">border</SnapMode>\n");
+    fprintf(fp, "   <MoveMode>outline</MoveMode>\n");
+    fprintf(fp, "   <ResizeMode>outline</ResizeMode>\n");
+    fprintf(fp, "</JWM>\n");
+
+    fclose(fp);
+    return 0;
+}
+
+static int GenJWMBinds(JWM *jwm)
+{
+    char path[512];
+    const char *fname = "binds_test";
+
+    strlcpy(path, jwm->autogen_config_path, sizeof(path));
+    strlcat(path, fname, sizeof(path));
+
+    FILE *fp = fopen(path, "w");
+
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error opening '%s': %s\n", path, strerror(errno));
+        return -1;
+    }
+
+    printf("Writing to %s\n", path);
+
+    // Start of the prefs xml file
+    fprintf(fp, "<?xml version=\"1.0\"?>\n");
+    fprintf(fp, "<JWM>\n");
+    fprintf(fp, "    <Key key=\"Up\">up</Key>\n");
+    fprintf(fp, "    <Key key=\"Down\">down</Key>\n");
+    fprintf(fp, "    <Key key=\"Right\">right</Key>\n");
+    fprintf(fp, "    <Key key=\"Left\">left</Key>\n");
+    fprintf(fp, "    <Key key=\"h\">up</Key>\n");
+    fprintf(fp, "    <Key key=\"j\">down</Key>\n");
+    fprintf(fp, "    <Key key=\"k\">right</Key>\n");
+    fprintf(fp, "    <Key key=\"l\">left</Key>\n");
+    fprintf(fp, "    <Key key=\"Return\">select</Key>\n");
+    fprintf(fp, "    <Key key=\"Escape\">escape</Key>\n");
+    fprintf(fp, "    <Key mask=\"A\" key=\"Tab\">nextstacked</Key>\n");
+    fprintf(fp, "    <Key mask=\"A\" key=\"F4\">close</Key>\n");
+    fprintf(fp, "    <Key mask=\"A\" key=\"#\">desktop#</Key>\n");
+    fprintf(fp, "    <Key mask=\"A\" key=\"F1\">root:1</Key>\n");
+    fprintf(fp, "    <Key mask=\"A\" key=\"F2\">window</Key>\n");
+    fprintf(fp, "    <Key mask=\"A\" key=\"F10\">maximize</Key>\n");
+    fprintf(fp, "    <Key mask=\"A\" key=\"Right\">rdesktop</Key>\n");
+    fprintf(fp, "    <Key mask=\"A\" key=\"Left\">ldesktop</Key>\n");
+    fprintf(fp, "    <Key mask=\"A\" key=\"Up\">udesktop</Key>\n");
+    fprintf(fp, "    <Key mask=\"A\" key=\"Down\">ddesktop</Key>\n");
+    fprintf(fp, "</JWM>\n");
+
+    fclose(fp);
+    return 0;
 }
 
 static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
@@ -241,7 +354,7 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
     fprintf(fp, "    </%s>\n", style_types[style].key);
 }
 
-static void GenJWMStyles(JWM *jwm, DArray *entries)
+static void GenJWMStyles(JWM *jwm)
 {
     char path[512];
     const char *fname = "styles_test";
@@ -441,10 +554,49 @@ static void GenJWMRootMenu(JWM *jwm, DArray *entries, HashMap *icons)
     WriteJWMRootMenuCategoryList(entries, icons, fp, System, "System");
     WriteJWMRootMenuCategoryList(entries, icons, fp, Utility,"Utility");
 
+    // Let's assume were using systemD for now
+    fprintf(fp, "   <Program label=\"Restart\">systemctl reboot</Program>\n");
+    fprintf(fp, "   <Program label=\"Shutdown\">systemctl poweroff</Program>\n");
     fprintf(fp, "   </RootMenu>\n");
     fprintf(fp, "</JWM>");
 
     fclose(fp);
+}
+
+static int GenJWMRCFile(JWM *jwm)
+{
+    char path[512];
+    const char *home = getenv("HOME");
+    const char *fname = ".jwmrc";
+
+    strlcpy(path, home, sizeof(path));
+    strlcat(path, "/", sizeof(path));
+    strlcat(path, fname, sizeof(path));
+
+    FILE *fp = fopen(path, "w");
+
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error opening '%s': %s\n", path, strerror(errno));
+        return -1;
+    }
+
+    printf("Writing to %s\n", path);
+
+    // Start of the .jwmrc file
+    fprintf(fp, "<?xml version=\"1.0\"?>\n");
+    fprintf(fp, "<JWM>\n");
+    fprintf(fp, "    <Include>$HOME/.config/jwm/menu_test</Include>\n");
+    fprintf(fp, "    <Include>$HOME/.config/jwm/tray_test</Include>\n");
+    fprintf(fp, "    <Include>$HOME/.config/jwm/group_test</Include>\n");
+    fprintf(fp, "    <Include>$HOME/.config/jwm/styles_test</Include>\n");
+    fprintf(fp, "    <Include>$HOME/.config/jwm/icons_test</Include>\n");
+    fprintf(fp, "    <Include>$HOME/.config/jwm/prefs_test</Include>\n");
+    fprintf(fp, "    <Include>$HOME/.config/jwm/binds_test</Include>\n");
+    fprintf(fp, "</JWM>\n");
+
+    fclose(fp);
+    return 0;
 }
 
 int WriteJWMConfig(DArray *entries, HashMap *icons)
@@ -543,9 +695,23 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
         goto failure;
 
     GenJWMRootMenu(jwm, entries, icons);
+
+    if (GenJWMGroup(jwm) != 0)
+        goto failure;
+
     GenJWMTray(jwm, entries);
-    GenJWMStyles(jwm, entries);
-    GenJWMIcons(jwm, entries);
+    GenJWMStyles(jwm);
+
+    if (GenJWMPreferences(jwm) != 0)
+        goto failure;
+
+    GenJWMIcons(jwm);
+
+    if (GenJWMBinds(jwm) != 0)
+        goto failure;
+
+    if (GenJWMRCFile(jwm) != 0)
+        goto failure;
 
     free(jwm->autogen_config_path);
     free(jwm);
@@ -554,6 +720,7 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
     return 0;
 
 failure:
+    free(jwm->autogen_config_path);
     free(jwm);
     cfg_free(cfg);
     return -1;
