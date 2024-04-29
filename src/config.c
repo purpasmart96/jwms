@@ -23,8 +23,11 @@
 #include "hashing.h"
 #include "config.h"
 
+#define WRITE_CFG(...) \
+    fprintf(fp, __VA_ARGS__)
 
-static const char *category_icons[] = {
+static const char *category_icons[] =
+{
     "applications-multimedia",
     "applications-multimedia",
     "applications-multimedia",
@@ -126,10 +129,10 @@ static void GenJWMIcons(JWM *jwm)
     printf("Writing to %s\n", path);
 
     // Start of the icon xml file
-    fprintf(fp, "<?xml version=\"1.0\"?>\n");
-    fprintf(fp, "<JWM>\n");
-    fprintf(fp, "   <IconPath>/usr/share/pixmaps/</IconPath>\n");
-    fprintf(fp, "</JWM>");
+    WRITE_CFG("<?xml version=\"1.0\"?>\n");
+    WRITE_CFG("<JWM>\n");
+    WRITE_CFG("   <IconPath>/usr/share/pixmaps/</IconPath>\n");
+    WRITE_CFG("</JWM>");
 
     fclose(fp);
 }
@@ -153,13 +156,13 @@ static int GenJWMGroup(JWM *jwm)
     printf("Writing to %s\n", path);
 
     // Start of the group xml file
-    fprintf(fp, "<?xml version=\"1.0\"?>\n");
-    fprintf(fp, "<JWM>\n");
-    fprintf(fp, "    <Group>\n");
-    fprintf(fp, "        <Option>tiled</Option>\n");
-    fprintf(fp, "        <Option>aerosnap</Option>\n");
-    fprintf(fp, "    </Group>\n");
-    fprintf(fp, "</JWM>\n");
+    WRITE_CFG("<?xml version=\"1.0\"?>\n");
+    WRITE_CFG("<JWM>\n");
+    WRITE_CFG("    <Group>\n");
+    WRITE_CFG("        <Option>tiled</Option>\n");
+    WRITE_CFG("        <Option>aerosnap</Option>\n");
+    WRITE_CFG("    </Group>\n");
+    WRITE_CFG("</JWM>\n");
 
     fclose(fp);
     return 0;
@@ -184,18 +187,18 @@ static int GenJWMPreferences(JWM *jwm)
     printf("Writing to %s\n", path);
 
     // Start of the prefs xml file
-    fprintf(fp, "<?xml version=\"1.0\"?>\n");
-    fprintf(fp, "<JWM>\n");
-    fprintf(fp, "   <Desktops width=\"2\" height=\"1\">\n");
-    fprintf(fp, "       <Background type=\"solid\">#111111</Background>\n");
-    fprintf(fp, "   </Desktops>\n");
-    fprintf(fp, "   <DoubleClickSpeed>400</DoubleClickSpeed>\n");
-    fprintf(fp, "   <DoubleClickDelta>2</DoubleClickDelta>\n");
-    fprintf(fp, "   <FocusModel>click</FocusModel>\n");
-    fprintf(fp, "   <SnapMode distance=\"10\">border</SnapMode>\n");
-    fprintf(fp, "   <MoveMode>outline</MoveMode>\n");
-    fprintf(fp, "   <ResizeMode>outline</ResizeMode>\n");
-    fprintf(fp, "</JWM>\n");
+    WRITE_CFG("<?xml version=\"1.0\"?>\n");
+    WRITE_CFG("<JWM>\n");
+    WRITE_CFG("   <Desktops width=\"2\" height=\"1\">\n");
+    WRITE_CFG("       <Background type=\"solid\">#111111</Background>\n");
+    WRITE_CFG("   </Desktops>\n");
+    WRITE_CFG("   <DoubleClickSpeed>400</DoubleClickSpeed>\n");
+    WRITE_CFG("   <DoubleClickDelta>2</DoubleClickDelta>\n");
+    WRITE_CFG("   <FocusModel>click</FocusModel>\n");
+    WRITE_CFG("   <SnapMode distance=\"10\">border</SnapMode>\n");
+    WRITE_CFG("   <MoveMode>outline</MoveMode>\n");
+    WRITE_CFG("   <ResizeMode>outline</ResizeMode>\n");
+    WRITE_CFG("</JWM>\n");
 
     fclose(fp);
     return 0;
@@ -220,29 +223,34 @@ static int GenJWMBinds(JWM *jwm)
     printf("Writing to %s\n", path);
 
     // Start of the prefs xml file
-    fprintf(fp, "<?xml version=\"1.0\"?>\n");
-    fprintf(fp, "<JWM>\n");
-    fprintf(fp, "    <Key key=\"Up\">up</Key>\n");
-    fprintf(fp, "    <Key key=\"Down\">down</Key>\n");
-    fprintf(fp, "    <Key key=\"Right\">right</Key>\n");
-    fprintf(fp, "    <Key key=\"Left\">left</Key>\n");
-    fprintf(fp, "    <Key key=\"h\">up</Key>\n");
-    fprintf(fp, "    <Key key=\"j\">down</Key>\n");
-    fprintf(fp, "    <Key key=\"k\">right</Key>\n");
-    fprintf(fp, "    <Key key=\"l\">left</Key>\n");
-    fprintf(fp, "    <Key key=\"Return\">select</Key>\n");
-    fprintf(fp, "    <Key key=\"Escape\">escape</Key>\n");
-    fprintf(fp, "    <Key mask=\"A\" key=\"Tab\">nextstacked</Key>\n");
-    fprintf(fp, "    <Key mask=\"A\" key=\"F4\">close</Key>\n");
-    fprintf(fp, "    <Key mask=\"A\" key=\"#\">desktop#</Key>\n");
-    fprintf(fp, "    <Key mask=\"A\" key=\"F1\">root:1</Key>\n");
-    fprintf(fp, "    <Key mask=\"A\" key=\"F2\">window</Key>\n");
-    fprintf(fp, "    <Key mask=\"A\" key=\"F10\">maximize</Key>\n");
-    fprintf(fp, "    <Key mask=\"A\" key=\"Right\">rdesktop</Key>\n");
-    fprintf(fp, "    <Key mask=\"A\" key=\"Left\">ldesktop</Key>\n");
-    fprintf(fp, "    <Key mask=\"A\" key=\"Up\">udesktop</Key>\n");
-    fprintf(fp, "    <Key mask=\"A\" key=\"Down\">ddesktop</Key>\n");
-    fprintf(fp, "</JWM>\n");
+    WRITE_CFG("<?xml version=\"1.0\"?>\n");
+    WRITE_CFG("<JWM>\n");
+    WRITE_CFG("    <Key key=\"Up\">up</Key>\n");
+    WRITE_CFG("    <Key key=\"Down\">down</Key>\n");
+    WRITE_CFG("    <Key key=\"Right\">right</Key>\n");
+    WRITE_CFG("    <Key key=\"Left\">left</Key>\n");
+    WRITE_CFG("    <Key key=\"h\">up</Key>\n");
+    WRITE_CFG("    <Key key=\"j\">down</Key>\n");
+    WRITE_CFG("    <Key key=\"k\">right</Key>\n");
+    WRITE_CFG("    <Key key=\"l\">left</Key>\n");
+    WRITE_CFG("    <Key key=\"Return\">select</Key>\n");
+    WRITE_CFG("    <Key key=\"Escape\">escape</Key>\n");
+    WRITE_CFG("    <Key mask=\"A\" key=\"Tab\">nextstacked</Key>\n");
+    WRITE_CFG("    <Key mask=\"A\" key=\"F4\">close</Key>\n");
+    WRITE_CFG("    <Key mask=\"A\" key=\"#\">desktop#</Key>\n");
+    WRITE_CFG("    <Key mask=\"A\" key=\"F1\">root:1</Key>\n");
+    WRITE_CFG("    <Key mask=\"A\" key=\"F2\">window</Key>\n");
+    WRITE_CFG("    <Key mask=\"A\" key=\"F10\">maximize</Key>\n");
+    WRITE_CFG("    <Key mask=\"A\" key=\"Right\">rdesktop</Key>\n");
+    WRITE_CFG("    <Key mask=\"A\" key=\"Left\">ldesktop</Key>\n");
+    WRITE_CFG("    <Key mask=\"A\" key=\"Up\">udesktop</Key>\n");
+    WRITE_CFG("    <Key mask=\"A\" key=\"Down\">ddesktop</Key>\n");
+
+    WRITE_CFG("    <Mouse context=\"root\" button=\"4\">ldesktop</Mouse>\n");
+    WRITE_CFG("    <Mouse context=\"root\" button=\"5\">rdesktop</Mouse>\n");
+
+   
+    WRITE_CFG("</JWM>\n");
 
     fclose(fp);
     return 0;
@@ -250,111 +258,111 @@ static int GenJWMBinds(JWM *jwm)
 
 static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
 {
-    fprintf(fp, "    <%s", style_types[style].key);
+    WRITE_CFG("    <%s", style_types[style].key);
 
     switch (style)
     {
         case WindowStyle:
         {
-            fprintf(fp, " decorations=\"%s\">\n", "flat");
-            fprintf(fp, "        <Font align=\"center\">Sans-10</Font>\n");
-            fprintf(fp, "        <Height>%d</Height>\n", jwm->window_height);
-            fprintf(fp, "        <Width>%d</Width>\n", jwm->window_width);
-            fprintf(fp, "        <Corner>%d</Corner>\n", jwm->window_corner_rounding);
-            fprintf(fp, "        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            fprintf(fp, "        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
-            fprintf(fp, "        <Opacity>%.2f</Opacity>\n", jwm->window_opacity_inactive);
-            fprintf(fp, "        <Outline>%s</Outline>\n", jwm->window_outline_color_inactive);
-            fprintf(fp, "        <Active>\n");
-            fprintf(fp, "            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
-            fprintf(fp, "            <Background>%s</Background>\n", jwm->global_bg_color_active);
-            fprintf(fp, "            <Opacity>%.2f</Opacity>\n", jwm->window_opacity_active);
-            fprintf(fp, "            <Outline>%s</Outline>\n", jwm->window_outline_color_active);
-            fprintf(fp, "        </Active>\n");
+            WRITE_CFG(" decorations=\"%s\">\n", "flat");
+            WRITE_CFG("        <Font align=\"center\">Sans-10</Font>\n");
+            WRITE_CFG("        <Height>%d</Height>\n", jwm->window_height);
+            WRITE_CFG("        <Width>%d</Width>\n", jwm->window_width);
+            WRITE_CFG("        <Corner>%d</Corner>\n", jwm->window_corner_rounding);
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
+            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
+            WRITE_CFG("        <Opacity>%.2f</Opacity>\n", jwm->window_opacity_inactive);
+            WRITE_CFG("        <Outline>%s</Outline>\n", jwm->window_outline_color_inactive);
+            WRITE_CFG("        <Active>\n");
+            WRITE_CFG("            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
+            WRITE_CFG("            <Background>%s</Background>\n", jwm->global_bg_color_active);
+            WRITE_CFG("            <Opacity>%.2f</Opacity>\n", jwm->window_opacity_active);
+            WRITE_CFG("            <Outline>%s</Outline>\n", jwm->window_outline_color_active);
+            WRITE_CFG("        </Active>\n");
             break;
         }
         case ClockStyle:
         {
-            fprintf(fp, ">\n");
-            fprintf(fp, "        <Font align=\"center\">Sans-10</Font>\n");
-            fprintf(fp, "        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            fprintf(fp, "        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
+            WRITE_CFG(">\n");
+            WRITE_CFG("        <Font align=\"center\">Sans-10</Font>\n");
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
+            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
             break;
         }
         case TrayStyle:
         {
-            fprintf(fp, " decorations=\"%s\">\n", "flat");
-            fprintf(fp, "        <Font align=\"center\">Sans-10</Font>\n");
-            fprintf(fp, "        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            fprintf(fp, "        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
-            fprintf(fp, "        <Outline>#FFFFFF</Outline>\n");
-            fprintf(fp, "        <Active>\n");
-            fprintf(fp, "            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
-            fprintf(fp, "            <Background>%s</Background>\n", jwm->global_bg_color_active);
-            fprintf(fp, "            <Opacity>0.5</Opacity>\n");
-            fprintf(fp, "        </Active>\n");
-            fprintf(fp, "        <Opacity>0.8</Opacity>\n");
+            WRITE_CFG(" decorations=\"%s\">\n", "flat");
+            WRITE_CFG("        <Font align=\"center\">Sans-10</Font>\n");
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
+            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
+            WRITE_CFG("        <Outline>#FFFFFF</Outline>\n");
+            WRITE_CFG("        <Active>\n");
+            WRITE_CFG("            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
+            WRITE_CFG("            <Background>%s</Background>\n", jwm->global_bg_color_active);
+            WRITE_CFG("            <Opacity>0.5</Opacity>\n");
+            WRITE_CFG("        </Active>\n");
+            WRITE_CFG("        <Opacity>0.8</Opacity>\n");
             break;
         }
         case TaskListStyle:
         {
-            fprintf(fp, " list=\"all\" group=\"true\">\n");
-            fprintf(fp, "        <Font align=\"center\">Sans-10</Font>\n");
-            fprintf(fp, "        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            fprintf(fp, "        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
-            fprintf(fp, "        <Outline>#FFFFFF</Outline>\n");
-            fprintf(fp, "        <Active>\n");
-            fprintf(fp, "            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
-            fprintf(fp, "            <Background>%s</Background>\n", jwm->global_bg_color_active);
-            fprintf(fp, "            <Outline>#FFFFFF</Outline>\n");
-            fprintf(fp, "        </Active>\n");
+            WRITE_CFG(" list=\"all\" group=\"true\">\n");
+            WRITE_CFG("        <Font align=\"center\">Sans-10</Font>\n");
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
+            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
+            WRITE_CFG("        <Outline>#FFFFFF</Outline>\n");
+            WRITE_CFG("        <Active>\n");
+            WRITE_CFG("            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
+            WRITE_CFG("            <Background>%s</Background>\n", jwm->global_bg_color_active);
+            WRITE_CFG("            <Outline>#FFFFFF</Outline>\n");
+            WRITE_CFG("        </Active>\n");
             break;
         }
         case PagerStyle:
         {
-            fprintf(fp, ">\n");
-            fprintf(fp, "        <Outline>#FFFFFF</Outline>\n");
-            fprintf(fp, "        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            fprintf(fp, "        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
-            fprintf(fp, "        <Font align=\"center\">Sans-10</Font>\n");
-            fprintf(fp, "        <Text>#FFFFFF</Text>\n");
-            fprintf(fp, "        <Active>\n");
-            fprintf(fp, "            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
-            fprintf(fp, "            <Background>%s</Background>\n", jwm->global_bg_color_active);
-            fprintf(fp, "        </Active>\n");
+            WRITE_CFG(">\n");
+            WRITE_CFG("        <Outline>#FFFFFF</Outline>\n");
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
+            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
+            WRITE_CFG("        <Font align=\"center\">Sans-10</Font>\n");
+            WRITE_CFG("        <Text>#FFFFFF</Text>\n");
+            WRITE_CFG("        <Active>\n");
+            WRITE_CFG("            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
+            WRITE_CFG("            <Background>%s</Background>\n", jwm->global_bg_color_active);
+            WRITE_CFG("        </Active>\n");
             break;
         }
         case MenuStyle:
         {
-            fprintf(fp, " decorations=\"%s\">\n", "flat");
-            fprintf(fp, "        <Font align=\"center\">Sans-10</Font>\n");
-            fprintf(fp, "        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            fprintf(fp, "        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
-            fprintf(fp, "        <Outline>%s</Outline>\n", jwm->menu_outline_color);
-            fprintf(fp, "        <Active>\n");
-            fprintf(fp, "            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
-            fprintf(fp, "            <Background>%s</Background>\n", jwm->global_bg_color_active);
-            fprintf(fp, "        </Active>\n");
-            fprintf(fp, "        <Opacity>%.2f</Opacity>\n", jwm->menu_opacity);
+            WRITE_CFG(" decorations=\"%s\">\n", "flat");
+            WRITE_CFG("        <Font align=\"center\">Sans-10</Font>\n");
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
+            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
+            WRITE_CFG("        <Outline>%s</Outline>\n", jwm->menu_outline_color);
+            WRITE_CFG("        <Active>\n");
+            WRITE_CFG("            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
+            WRITE_CFG("            <Background>%s</Background>\n", jwm->global_bg_color_active);
+            WRITE_CFG("        </Active>\n");
+            WRITE_CFG("        <Opacity>%.2f</Opacity>\n", jwm->menu_opacity);
             break;
         }
         case PopupStyle:
         {
-            fprintf(fp, " list=\"all\" group=\"true\">\n");
-            fprintf(fp, "        <Font align=\"center\">Sans-10</Font>\n");
-            fprintf(fp, "        <Outline>#FFFFFF</Outline>\n");
-            fprintf(fp, "        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            fprintf(fp, "        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
+            WRITE_CFG(" list=\"all\" group=\"true\">\n");
+            WRITE_CFG("        <Font align=\"center\">Sans-10</Font>\n");
+            WRITE_CFG("        <Outline>#FFFFFF</Outline>\n");
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
+            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
             break;
         }
         default:
             break;
     }
 
-    fprintf(fp, "    </%s>\n", style_types[style].key);
+    WRITE_CFG("    </%s>\n", style_types[style].key);
 }
 
-static void GenJWMStyles(JWM *jwm)
+static int GenJWMStyles(JWM *jwm)
 {
     char path[512];
     const char *fname = "styles_test";
@@ -367,14 +375,14 @@ static void GenJWMStyles(JWM *jwm)
     if (fp == NULL)
     {
         fprintf(stderr, "Error opening '%s': %s\n", path, strerror(errno));
-        return;
+        return -1;
     }
 
     printf("Writing to %s\n", path);
 
     // Start of the styles/theme xml file
-    fprintf(fp, "<?xml version=\"1.0\"?>\n");
-    fprintf(fp, "<JWM>\n");
+    WRITE_CFG("<?xml version=\"1.0\"?>\n");
+    WRITE_CFG("<JWM>\n");
 
     WriteJWMStyle(jwm, fp, WindowStyle);
     WriteJWMStyle(jwm, fp, ClockStyle);
@@ -384,8 +392,10 @@ static void GenJWMStyles(JWM *jwm)
     WriteJWMStyle(jwm, fp, MenuStyle);
     WriteJWMStyle(jwm, fp, PopupStyle);
 
-    fprintf(fp, "</JWM>\n");
+    WRITE_CFG("</JWM>\n");
+
     fclose(fp);
+    return 0;
 }
 
 static void WriteJWMTray(JWM *jwm, DArray *entries, FILE *fp)
@@ -394,40 +404,40 @@ static void WriteJWMTray(JWM *jwm, DArray *entries, FILE *fp)
     XDGDesktopEntry *terminal = GetCoreProgram(entries, TerminalEmulator, jwm->terminal_name);
     if (terminal != NULL)
     {
-        fprintf(fp, "       <TrayButton popup=\"%s\" icon=\"%s\">exec:%s</TrayButton>\n", terminal->name, terminal->icon, terminal->exec);
+        WRITE_CFG("       <TrayButton popup=\"%s\" icon=\"%s\">exec:%s</TrayButton>\n", terminal->name, terminal->icon, terminal->exec);
     }
     else
     {
-        fprintf(fp, "       <TrayButton popup=\"Terminal\" icon=\"terminal\">exec:x-terminal-emulator</TrayButton>\n");
+        WRITE_CFG("       <TrayButton popup=\"Terminal\" icon=\"terminal\">exec:x-terminal-emulator</TrayButton>\n");
     }
 
-    fprintf(fp, "       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
     // Get FileManager
     XDGDesktopEntry *filemanager = GetCoreProgram(entries, FileManager, jwm->filemanager_name);
 
     if (filemanager != NULL)
     {
-        fprintf(fp, "       <TrayButton popup=\"%s\" icon=\"%s\">exec:%s</TrayButton>\n", filemanager->name, filemanager->icon, filemanager->exec);
+        WRITE_CFG("       <TrayButton popup=\"%s\" icon=\"%s\">exec:%s</TrayButton>\n", filemanager->name, filemanager->icon, filemanager->exec);
     }
     else
     {
-        fprintf(fp, "       <TrayButton popup=\"File Manager\" icon=\"system-file-manager\">exec:spacefm</TrayButton>\n");
+        WRITE_CFG("       <TrayButton popup=\"File Manager\" icon=\"system-file-manager\">exec:spacefm</TrayButton>\n");
     }
 
-    fprintf(fp, "       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
 
     // Get WebBrowser
     XDGDesktopEntry *browser = GetCoreProgram(entries, WebBrowser, jwm->browser_name);
     if (browser != NULL)
     {
-        fprintf(fp, "       <TrayButton popup=\"%s\" icon=\"%s\">exec:%s</TrayButton>\n", browser->name, browser->icon, browser->exec);
+        WRITE_CFG("       <TrayButton popup=\"%s\" icon=\"%s\">exec:%s</TrayButton>\n", browser->name, browser->icon, browser->exec);
     }
     else
     {
-        fprintf(fp, "       <TrayButton popup=\"Web browser\" icon=\"firefox\">exec:firefox</TrayButton>\n");
+        WRITE_CFG("       <TrayButton popup=\"Web browser\" icon=\"firefox\">exec:firefox</TrayButton>\n");
     }
 
-    fprintf(fp, "       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
 }
 
 static void GenJWMTray(JWM *jwm, DArray *entries)
@@ -450,39 +460,39 @@ static void GenJWMTray(JWM *jwm, DArray *entries)
 
     const char *auto_hide = (jwm->tray_auto_hide == true) ? "on" : "off";
     // Start of the tray xml file
-    fprintf(fp, "<?xml version=\"1.0\"?>\n");
-    fprintf(fp, "<JWM>\n");
+    WRITE_CFG("<?xml version=\"1.0\"?>\n");
+    WRITE_CFG("<JWM>\n");
 
     // This can be improved...
     if (jwm->tray_pos == Bottom)
     {
-        fprintf(fp, "   <Tray x=\"0\" y=\"-1\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
+        WRITE_CFG("   <Tray x=\"0\" y=\"-1\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
     }
     else if (jwm->tray_pos == Top)
     {
-        fprintf(fp, "   <Tray x=\"0\" y=\"+1\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
+        WRITE_CFG("   <Tray x=\"0\" y=\"+1\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
     }
     else
     {
-        fprintf(fp, "   <Tray x=\"0\" y=\"-1\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
+        WRITE_CFG("   <Tray x=\"0\" y=\"-1\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
         printf("Error! Tray Position Not Implemented Yet!\n");
     }
 
-    fprintf(fp, "       <TrayButton icon=\"/usr/share/jwm/jwm-blue.svg\">root:1</TrayButton>\n");
-    fprintf(fp, "       <Spacer width=\"4\"/>\n");
+    WRITE_CFG("       <TrayButton icon=\"/usr/share/jwm/jwm-blue.svg\">root:1</TrayButton>\n");
+    WRITE_CFG("       <Spacer width=\"4\"/>\n");
     WriteJWMTray(jwm, entries, fp);
-    fprintf(fp, "       <TaskList maxwidth=\"200\"/>\n");
-    fprintf(fp, "       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
-    fprintf(fp, "       <TrayButton popup=\"Show Desktop\" icon=\"desktop\">showdesktop</TrayButton>\n");
-    fprintf(fp, "       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
-    fprintf(fp, "       <Pager labeled=\"true\"/>\n");
-    fprintf(fp, "       <Spacer width=\"%d\"/>\n",jwm->tray_icon_spacing);
-    fprintf(fp, "       <Dock/>\n");
-    fprintf(fp, "       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
-    fprintf(fp, "       <Clock format=\"%%l:%%M %%p\"><Button mask=\"123\">exec:xclock</Button></Clock>\n");
-    fprintf(fp, "       <Spacer width=\"4\"/>\n");
-    fprintf(fp, "   </Tray>\n");
-    fprintf(fp, "</JWM>");
+    WRITE_CFG("       <TaskList maxwidth=\"200\"/>\n");
+    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    WRITE_CFG("       <TrayButton popup=\"Show Desktop\" icon=\"desktop\">showdesktop</TrayButton>\n");
+    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    WRITE_CFG("       <Pager labeled=\"true\"/>\n");
+    WRITE_CFG("       <Spacer width=\"%d\"/>\n",jwm->tray_icon_spacing);
+    WRITE_CFG("       <Dock/>\n");
+    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    WRITE_CFG("       <Clock format=\"%%l:%%M %%p\"><Button mask=\"123\">exec:xclock</Button></Clock>\n");
+    WRITE_CFG("       <Spacer width=\"4\"/>\n");
+    WRITE_CFG("   </Tray>\n");
+    WRITE_CFG("</JWM>");
 
     fclose(fp);
 }
@@ -490,7 +500,7 @@ static void GenJWMTray(JWM *jwm, DArray *entries)
 static void WriteJWMRootMenuCategoryList(DArray *entries, HashMap *icons, FILE *fp, XDGMainCategories category, const char *category_name)
 {
     char *category_icon = FindIcon(category_icons[category], 32, 1);
-    fprintf(fp, "       <Menu icon=\"%s\" label=\"%s\">\n", category_icon, category_name);
+    WRITE_CFG("       <Menu icon=\"%s\" label=\"%s\">\n", category_icon, category_name);
     free(category_icon);
  
     for (size_t i = 0; i < entries->size; i++)
@@ -507,18 +517,18 @@ static void WriteJWMRootMenuCategoryList(DArray *entries, HashMap *icons, FILE *
 
             if (!entry->terminal_required)
             {
-                fprintf(fp, "           <Program icon=\"%s\" label=\"%s\">%s</Program>\n",
-                        icon, entry->name, entry->exec);
+                WRITE_CFG("           <Program icon=\"%s\" label=\"%s\">%s</Program>\n",
+                            icon, entry->name, entry->exec);
             }
             else
             {
-                fprintf(fp, "           <Program icon=\"%s\" label=\"%s\">x-terminal-emulator -e %s</Program>\n",
-                        icon, entry->name, entry->exec);
+                WRITE_CFG("           <Program icon=\"%s\" label=\"%s\">x-terminal-emulator -e %s</Program>\n",
+                            icon, entry->name, entry->exec);
             }
         }
     }
 
-    fprintf(fp, "       </Menu>\n");
+    WRITE_CFG("       </Menu>\n");
 }
 
 static void GenJWMRootMenu(JWM *jwm, DArray *entries, HashMap *icons)
@@ -540,9 +550,9 @@ static void GenJWMRootMenu(JWM *jwm, DArray *entries, HashMap *icons)
     printf("Writing to %s\n", path);
 
     // Start of the root menu xml file
-    fprintf(fp, "<?xml version=\"1.0\"?>\n");
-    fprintf(fp, "<JWM>\n");
-    fprintf(fp, "   <RootMenu height=\"%d\" onroot=\"12\">\n", jwm->root_menu_height);
+    WRITE_CFG("<?xml version=\"1.0\"?>\n");
+    WRITE_CFG("<JWM>\n");
+    WRITE_CFG("   <RootMenu height=\"%d\" onroot=\"12\">\n", jwm->root_menu_height);
 
     WriteJWMRootMenuCategoryList(entries, icons, fp, Network, "Internet");
     WriteJWMRootMenuCategoryList(entries, icons, fp, AudioVideo, "Multimedia");
@@ -555,10 +565,10 @@ static void GenJWMRootMenu(JWM *jwm, DArray *entries, HashMap *icons)
     WriteJWMRootMenuCategoryList(entries, icons, fp, Utility,"Utility");
 
     // Let's assume were using systemD for now
-    fprintf(fp, "   <Program label=\"Restart\">systemctl reboot</Program>\n");
-    fprintf(fp, "   <Program label=\"Shutdown\">systemctl poweroff</Program>\n");
-    fprintf(fp, "   </RootMenu>\n");
-    fprintf(fp, "</JWM>");
+    WRITE_CFG("   <Program label=\"Restart\">systemctl reboot</Program>\n");
+    WRITE_CFG("   <Program label=\"Shutdown\">systemctl poweroff</Program>\n");
+    WRITE_CFG("   </RootMenu>\n");
+    WRITE_CFG("</JWM>");
 
     fclose(fp);
 }
@@ -584,16 +594,16 @@ static int GenJWMRCFile(JWM *jwm)
     printf("Writing to %s\n", path);
 
     // Start of the .jwmrc file
-    fprintf(fp, "<?xml version=\"1.0\"?>\n");
-    fprintf(fp, "<JWM>\n");
-    fprintf(fp, "    <Include>$HOME/.config/jwm/menu_test</Include>\n");
-    fprintf(fp, "    <Include>$HOME/.config/jwm/tray_test</Include>\n");
-    fprintf(fp, "    <Include>$HOME/.config/jwm/group_test</Include>\n");
-    fprintf(fp, "    <Include>$HOME/.config/jwm/styles_test</Include>\n");
-    fprintf(fp, "    <Include>$HOME/.config/jwm/icons_test</Include>\n");
-    fprintf(fp, "    <Include>$HOME/.config/jwm/prefs_test</Include>\n");
-    fprintf(fp, "    <Include>$HOME/.config/jwm/binds_test</Include>\n");
-    fprintf(fp, "</JWM>\n");
+    WRITE_CFG("<?xml version=\"1.0\"?>\n");
+    WRITE_CFG("<JWM>\n");
+    WRITE_CFG("    <Include>$HOME/.config/jwm/menu_test</Include>\n");
+    WRITE_CFG("    <Include>$HOME/.config/jwm/tray_test</Include>\n");
+    WRITE_CFG("    <Include>$HOME/.config/jwm/group_test</Include>\n");
+    WRITE_CFG("    <Include>$HOME/.config/jwm/styles_test</Include>\n");
+    WRITE_CFG("    <Include>$HOME/.config/jwm/icons_test</Include>\n");
+    WRITE_CFG("    <Include>$HOME/.config/jwm/prefs_test</Include>\n");
+    WRITE_CFG("    <Include>$HOME/.config/jwm/binds_test</Include>\n");
+    WRITE_CFG("</JWM>\n");
 
     fclose(fp);
     return 0;
@@ -700,7 +710,9 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
         goto failure;
 
     GenJWMTray(jwm, entries);
-    GenJWMStyles(jwm);
+
+    if (GenJWMStyles(jwm) != 0)
+        goto failure;
 
     if (GenJWMPreferences(jwm) != 0)
         goto failure;
