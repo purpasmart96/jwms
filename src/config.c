@@ -246,8 +246,8 @@ static int GenJWMBinds(JWM *jwm)
     WRITE_CFG("    <Key mask=\"A\" key=\"Up\">udesktop</Key>\n");
     WRITE_CFG("    <Key mask=\"A\" key=\"Down\">ddesktop</Key>\n");
 
-    WRITE_CFG("    <Mouse context=\"root\" button=\"4\">ldesktop</Mouse>\n");
-    WRITE_CFG("    <Mouse context=\"root\" button=\"5\">rdesktop</Mouse>\n");
+    //WRITE_CFG("    <Mouse context=\"root\" button=\"4\">ldesktop</Mouse>\n");
+    //WRITE_CFG("    <Mouse context=\"root\" button=\"5\">rdesktop</Mouse>\n");
 
    
     WRITE_CFG("</JWM>\n");
@@ -299,7 +299,7 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
             WRITE_CFG("        <Active>\n");
             WRITE_CFG("            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
             WRITE_CFG("            <Background>%s</Background>\n", jwm->global_bg_color_active);
-            WRITE_CFG("            <Opacity>0.5</Opacity>\n");
+            //WRITE_CFG("            <Opacity>0.5</Opacity>\n");
             WRITE_CFG("        </Active>\n");
             WRITE_CFG("        <Opacity>0.8</Opacity>\n");
             break;
@@ -534,7 +534,7 @@ static void WriteJWMRootMenuCategoryList(DArray *entries, HashMap *icons, FILE *
 static void GenJWMRootMenu(JWM *jwm, DArray *entries, HashMap *icons)
 {
     char path[512];
-    const char *fname = "root_menutest";
+    const char *fname = "menu_test";
 
     strlcpy(path, jwm->autogen_config_path, sizeof(path));
     strlcat(path, fname, sizeof(path));
