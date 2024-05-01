@@ -254,20 +254,28 @@ bool EntryExecExists(DArray *entries, const char *key)
     return DArrayContains(entries, key, EntrySortCmp, ExecCmp);
 }
 
+// TODO: Clean up/refactor needed
 XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_category, const char *name)
 {
     char *base_name = basename(strdup(name)); 
-    XDGDesktopEntry *entry = EntriesBinarySearchExec(entries, base_name);
-    if (entry != NULL)
-        if (entry->extra_category == extra_category)
-        {
-            free(base_name);
-            return entry;
-        }
 
-    printf("Couldn't find %s. Finding another one\n", base_name);
+    for (size_t i = 0; i < entries->size; i++)
+    {
+        XDGDesktopEntry *entry = entries->data[i];
+
+        if (strstr(entry->exec, base_name) != NULL)
+        {
+            if (entry->extra_category == extra_category)
+            {
+                free(base_name);
+                return entry;
+            }
+        }
+    }
+
+    printf("Couldn't find %s. Using a fallback\n", base_name);
     // Couldn't find it, let's search for the first valid one
-    for (unsigned int i = 0; i < entries->size; i++)
+    for (size_t i = 0; i < entries->size; i++)
     {
         XDGDesktopEntry *entry = entries->data[i];
 
