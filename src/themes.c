@@ -7,13 +7,13 @@
 #include "config.h"
 #include "themes.h"
 
-
 int UseTheme(JWM *jwm, ColorTheme theme)
 {
     switch (theme)
     {
         case Adwaita:
         {
+            //@define-color unfocused_borders_breeze #5f6265;
             break;
         }
         case BreezeDark:

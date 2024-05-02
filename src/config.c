@@ -1,4 +1,3 @@
-
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,12 +14,12 @@
 
 #include "common.h"
 #include "darray.h"
-#include "list.h"
 #include "hashing.h"
+#include "list.h"
 //#include "ini.h"
 #include "icons.h"
 #include "desktop_entries.h"
-#include "hashing.h"
+
 #include "config.h"
 #include "themes.h"
 
@@ -714,6 +713,7 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
         CFG_BOOL("tray_autohide", false, CFGF_NONE),
         CFG_INT("tray_height", 32, CFGF_NONE),
         CFG_INT("tray_icon_spacing", 4, CFGF_NONE),
+        CFG_BOOL("tray_outline_enabled", false, CFGF_NONE),
         CFG_END()
     };
 
@@ -783,7 +783,7 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
 
     GenJWMTray(jwm, entries, icons);
 
-    //UseTheme(jwm, BreezeDark);
+    UseTheme(jwm, BreezeDark);
 
     if (GenJWMStyles(jwm) != 0)
         goto failure;

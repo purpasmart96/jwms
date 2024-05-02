@@ -118,7 +118,6 @@ void ParseSections(FILE *file, HashMap *map)
     }
 }
 
-
 static int ParseInt(const char *str)
 {
     char *end;

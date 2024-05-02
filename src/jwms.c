@@ -15,7 +15,7 @@
 #include "darray.h"
 #include "list.h"
 #include "hashing.h"
-#include "ini.h"
+//#include "ini.h"
 #include "icons.h"
 #include "desktop_entries.h"
 #include "list.h"
@@ -29,7 +29,7 @@ int main()
     EntriesSort(entries);
 
     List *icons_input = ListCreate();
-    for (int i = 0; i < entries->size; i++)
+    for (size_t i = 0; i < entries->size; i++)
     {
         XDGDesktopEntry *current_entry = entries->data[i];
         ListAdd(icons_input, current_entry->icon, strlen(current_entry->icon) + 1);
@@ -55,11 +55,6 @@ int main()
     //    printf("Icon Directories: %s\n", IniGetString(icon_theme, "Icon Theme:Directories"));
     //    IniDestroy(icon_theme);
     //}
-
-    // Icon search test
-    //char *icon = FindIcon("mpv", 32, 1);
-    //printf("\nIcon: %s\n", icon);
-    //free(icon);
 
     HashMapDestroy(icons_output);
     ListDestroy(icons_input);
