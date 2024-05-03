@@ -110,6 +110,35 @@ static int CreateJWMFolder(JWM *jwm)
     return 0;
 }
 
+static int GenJWMStartup(JWM *jwm)
+{
+    char path[512];
+    const char *fname = "startup_test";
+
+    strlcpy(path, jwm->autogen_config_path, sizeof(path));
+    strlcat(path, fname, sizeof(path));
+
+    FILE *fp = fopen(path, "w");
+
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error opening '%s': %s\n", path, strerror(errno));
+        return -1;
+    }
+
+    printf("Writing to %s\n", path);
+
+    // Start of the startup xml file
+    WRITE_CFG("<?xml version=\"1.0\"?>\n");
+    WRITE_CFG("<JWM>\n");
+    WRITE_CFG("   <StartupCommand>~/.config/jwm/autostart</StartupCommand>\n");
+    WRITE_CFG("   <RestartCommand>~/.config/jwm/autostart</RestartCommand>\n");
+    WRITE_CFG("</JWM>\n");
+
+    fclose(fp);
+    return 0;
+}
+
 static void GenJWMIcons(JWM *jwm)
 {
     char path[512];
@@ -657,6 +686,7 @@ static int GenJWMRCFile(JWM *jwm)
     WRITE_CFG("<?xml version=\"1.0\"?>\n");
     WRITE_CFG("<JWM>\n");
     WRITE_CFG("    <Include>$HOME/.config/jwm/menu_test</Include>\n");
+    WRITE_CFG("    <Include>$HOME/.config/jwm/startup_test</Include>\n");
     WRITE_CFG("    <Include>$HOME/.config/jwm/tray_test</Include>\n");
     WRITE_CFG("    <Include>$HOME/.config/jwm/group_test</Include>\n");
     WRITE_CFG("    <Include>$HOME/.config/jwm/styles_test</Include>\n");
@@ -777,6 +807,9 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
         goto failure;
 
     GenJWMRootMenu(jwm, entries, icons);
+
+    if (GenJWMStartup(jwm) != 0)
+        goto failure;
 
     if (GenJWMGroup(jwm) != 0)
         goto failure;
