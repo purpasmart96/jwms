@@ -410,7 +410,7 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
             }
     
             WRITE_CFG("        </Active>\n");
-            WRITE_CFG("        <Opacity>0.8</Opacity>\n");
+            WRITE_CFG("        <Opacity>%.2f</Opacity>\n", jwm->tray_opacity);
             break;
         }
         case TaskListStyle:
@@ -805,6 +805,7 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
         CFG_INT("tray_height", 32, CFGF_NONE),
         CFG_INT("tray_icon_spacing", 4, CFGF_NONE),
         CFG_BOOL("tray_outline_enabled", false, CFGF_NONE),
+        CFG_FLOAT("tray_opacity", 0.95, CFGF_NONE),
         CFG_END()
     };
 
@@ -874,6 +875,7 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
     jwm->tray_height = cfg_getint(cfg, "tray_height");
     jwm->tray_icon_spacing = cfg_getint(cfg, "tray_icon_spacing");
     jwm->tray_outline_enabled = cfg_getbool(cfg, "tray_outline_enabled");
+    jwm->tray_opacity = GetValidOpacity(cfg_getfloat(cfg, "tray_opacity"));
 
     jwm->root_menu_height = cfg_getint(cfg, "rootmenu_height");
 

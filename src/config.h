@@ -29,6 +29,7 @@ typedef struct
     bool tray_auto_hide;
     int tray_icon_spacing;
     bool tray_outline_enabled;
+    float tray_opacity;
 
     int root_menu_height;
 
