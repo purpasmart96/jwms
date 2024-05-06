@@ -1,7 +1,7 @@
 CC:=gcc
 CFLAGS:=-Wall -Wextra
 LDFLAGS:=-lconfuse -lbsd
-REL_FLAGS:=-O2
+REL_FLAGS:=-O2 -D DISABLE_DEBUG
 DBG_FLAGS:=-g -O0
 
 # Posix compatiable version of $(wildcard)
