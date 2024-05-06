@@ -69,14 +69,6 @@ static const Pair xdg_extra_categories[] =
     {"TextEditor",       TextEditor      },
 };
 
-static const char *bad_args[] =
-{
-    "%U",
-    "%F",
-    "%u",
-    "%f",
-};
-
 static XDGMainCategories GetXDGMainCategoryType(const char *category)
 {
     for (size_t i = 0; i < ARRAY_SIZE(xdg_main_categories); i++)
@@ -198,24 +190,6 @@ void EntriesDestroy(DArray *entries)
     DArrayDestroy(entries, DestroyEntry);
 }
 
-static int ProgramCmp(void *a, void *b)
-{
-    XDGDesktopEntry *entry_a = a;
-    XDGDesktopEntry *entry_b = b;
-    if ((strcmp(entry_a->exec, entry_b->exec) == 0) && entry_a->extra_category == entry_b->extra_category)
-        return 0;
-    return -1;
-}
-
-static int BrowserCmp(void *a, void *b)
-{
-    XDGDesktopEntry *entry_a = a;
-    XDGDesktopEntry *entry_b = b;
-    if ((strcmp(entry_a->exec, entry_b->exec) == 0) && entry_a->extra_category == entry_b->extra_category)
-        return 0;
-    return -1;
-}
-
 static int ExecCmp(const void *a, const void *b)
 {
     const XDGDesktopEntry *entry_a = a;
@@ -262,9 +236,9 @@ XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_c
     {
         XDGDesktopEntry *entry = entries->data[i];
 
-        if (strstr(entry->exec, base_name) != NULL)
+        if (entry->extra_category == extra_category)
         {
-            if (entry->extra_category == extra_category)
+            if (strstr(entry->exec, base_name) != NULL)
             {
                 free(base_name);
                 return entry;
@@ -292,20 +266,58 @@ XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_c
 
 static void ParseExec(XDGDesktopEntry *entry, const char *exec)
 {
-    entry->exec = strdup(exec);
-    for (size_t i = 0; i < ARRAY_SIZE(bad_args); i++)
+    char final[1024] = {"\0"};
+
+    char *save_ptr;
+    char *str_copy = strdup(exec);
+
+    char *token = strtok_r(str_copy, " ", &save_ptr);
+
+    // Parse environment variables if they exist
+    if (strcmp(token, "env") == 0)
     {
-        if (strstr(exec, bad_args[i]) != NULL)
+        strlcpy(final, "env ", sizeof(final));
+        while ((token = strtok_r(NULL, " ", &save_ptr)) != NULL && strchr(token, '=') != NULL)
         {
-            RemoveSubStrNoOverlap(entry->exec, bad_args[i]);
+            char *reserved;
+            char *name = strtok_r(token, "=", &reserved);
+            char *value = strtok_r(NULL, "=", &reserved);
+            if (name != NULL && value != NULL)
+            {
+                strlcat(final, name, sizeof(final));
+                strlcat(final, "=", sizeof(final));
+                strlcat(final, value, sizeof(final));
+                strlcat(final, " ", sizeof(final));
+            }
         }
     }
-    StripTrailingWSpace(entry->exec);
+
+    // Parse program and arguments
+    if (token != NULL)
+    {
+        strlcat(final, token, sizeof(final));
+        strlcat(final, " ", sizeof(final));
+        while ((token = strtok_r(NULL, " ", &save_ptr)) != NULL)
+        {
+            // Skip args that contain the % character
+            if ((strchr(token, '%')) != NULL)
+            {
+                continue;
+            }
+            
+            strlcat(final, token, sizeof(final));
+            strlcat(final, " ", sizeof(final));
+        }
+    }
+
+    StripTrailingWSpace(final);
+    entry->exec = strdup(final);
+    free(str_copy);
 }
 
 static void ParseCategories(XDGDesktopEntry *entry, char *categories)
 {
-    //printf("Listed categories: %s\n", categories);
+    DEBUG_LOG("Listed categories: %s\n", categories);
 
     char *reserved;
     char *token = strtok_r(categories, ";", &reserved);
@@ -316,7 +328,6 @@ static void ParseCategories(XDGDesktopEntry *entry, char *categories)
 
         if (main != Invalid && entry->category_name == NULL)
         {
-
             entry->category_name = strdup(token);
             entry->category = main;
         }
@@ -328,14 +339,14 @@ static void ParseCategories(XDGDesktopEntry *entry, char *categories)
         }
 
         // We reached the end, exit the loop
-        if (main != Invalid && extra != IgnoredOrInvalid)
-            break;
+        //if (main != Invalid && extra != IgnoredOrInvalid)
+        //    break;
 
         token = strtok_r(NULL, ";", &reserved);
     }
 }
 
-static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *value, bool *application, bool *icon_exists, bool *has_exec)
+static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, char *value, bool *application, bool *icon_exists, bool *has_exec)
 {
     switch (key_type)
     {
@@ -371,22 +382,24 @@ static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *value,
             break;
         }
         case Hidden:
-        break;
+        {
+            DEBUG_LOG("Found Hidden: %s\n", value);
+            break;
+        }
         case TryExec:
         {
-            //printf("Found TryExec: %s\n", value);
+            DEBUG_LOG("Found TryExec: %s\n", value);
             break;
         }
         case Exec:
         {
-            //const char *stripped_exec = basename(value);
             ParseExec(entry, value);
             *has_exec = true;
             break;
         }
         case Path:
         {
-            //printf("Found Path: %s\n", value);
+            DEBUG_LOG("Found Path: %s\n", value);
             break;
         }
         case Terminal:
@@ -396,7 +409,7 @@ static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *value,
         }
         case MimeType:
         {
-            //printf("Found MimeType: %s\n", value);
+            DEBUG_LOG("Found MimeType: %s\n", value);
             break;
         }
         case Categories:
@@ -408,10 +421,9 @@ static bool ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *value,
         break;
 
         default:
-            //printf("Invalid or ingored category \"%s\" contains \"%s\"\n", key, value);
+            DEBUG_LOG("Invalid or ingored category \"%s\" contains \"%s\"\n", key, value);
         break;
     }
-    return false;
 }
 
 static XDGDesktopEntry *ReadDesktopEntry(const char *path)
@@ -441,12 +453,12 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
             continue;
 
         // Simple trailing newline removal
-        line[strcspn(line, "\n")] = 0;
+        //line[strcspn(line, "\n")] = 0;
 
-        if (line[0] == '[' && line[strlen(line) - 1] == ']')
+        if (line[0] == '[' && line[strlen(line) - 1] == '\n')
         {
             // Detect nested entries in one desktop entry file (eg:Steam)
-            if (strcmp(line, "[Desktop Entry]") == 0)
+            if (strcmp(line, "[Desktop Entry]\n") == 0)
             {
                 is_desktop_entry = true;
             }
@@ -461,16 +473,16 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
         {
             char *reserved;
             char *key = strtok_r(line, "=", &reserved);
-            char *value = strtok_r(NULL, "=", &reserved);
+            char *value = strtok_r(NULL, "\n", &reserved);
 
             if (value == NULL)
                 continue; // Not a key-value pair
 
-            for (unsigned int i = 0; i < ARRAY_SIZE(xdg_keys); i++)
+            for (size_t i = 0; i < ARRAY_SIZE(xdg_keys); i++)
             {
                 if (strcmp(key, xdg_keys[i].key) == 0)
                 {
-                    ParseDesktopEntry(entry, i, value, &application, &icon_exists, &has_exec);
+                    ParseDesktopEntry(entry, i, key, value, &application, &icon_exists, &has_exec);
                     break;
                 }
             }
