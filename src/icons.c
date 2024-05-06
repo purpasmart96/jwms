@@ -150,7 +150,6 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
 
     char line[256];
     char section[128];
-    char prev_section[128];
     char key[128];
     char value[128];
     bool in_section = false;
@@ -309,27 +308,6 @@ void UnLoadIconTheme(IconTheme *icon_theme)
     free(icon_theme);
 }
 
-static char *IconStrip(char *icon)
-{
-    icon = basename(icon);
-
-    //char *ext = strrchr(icon, '.');
-
-    char *reserved;
-    char *main = strtok_r(icon, ".", &reserved);
-    char *ext = strtok_r(NULL, ".", &reserved);
-
-    for (unsigned int i = 0; i < strlen(ext); i++)
-    {
-        ext[i] = tolower(ext[i]);
-    }
-
-    if ((strcmp(ext, ".png") == 0) || (strcmp(ext, ".svg") == 0) || (strcmp(ext, ".svgz") == 0) || (strcmp(ext, ".xpm")) == 0)
-        return main;
-
-    return icon;
-}
-
 char *GetCurrentGTKIconThemeName()
 {
     FILE *fp;
@@ -388,8 +366,7 @@ char *GetCurrentGTKIconThemeName()
     return icon_theme;
 }
 
-
-bool DirectoryMatchesSize(XDGIcon *icon, int icon_size, int icon_scale)
+static bool DirectoryMatchesSize(XDGIcon *icon, int icon_size, int icon_scale)
 {
     if (icon->scale != icon_scale)
     {
@@ -412,7 +389,7 @@ bool DirectoryMatchesSize(XDGIcon *icon, int icon_size, int icon_scale)
 }
 
 // Function to calculate the Directory Size Distance
-int DirectorySizeDistance(XDGIcon *icon, int icon_size, int icon_scale)
+static int DirectorySizeDistance(XDGIcon *icon, int icon_size, int icon_scale)
 {
     if (icon->type == Fixed)
     {
@@ -429,11 +406,22 @@ int DirectorySizeDistance(XDGIcon *icon, int icon_size, int icon_scale)
         {
             return icon_size * icon_scale - icon->max_size * icon->scale;
         }
-        return 0;
     }
+    else if (icon->type == Threshold)
+    {
+        if (icon_size * icon_scale < (icon->size - icon->threshold) * icon->scale)
+        {
+            return icon->min_size * icon->scale - icon_size * icon_scale;
+        }
+
+        if (icon_size * icon_size > (icon->size + icon->threshold) * icon->scale)
+        {
+            return icon_size * icon_size - icon->max_size * icon->scale;
+        }
+    }
+
     return 0;
 }
-
 
 char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale)
 {
