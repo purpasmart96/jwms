@@ -230,7 +230,8 @@ bool EntryExecExists(DArray *entries, const char *key)
 // TODO: Clean up/refactor needed
 XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_category, const char *name)
 {
-    char *base_name = basename(strdup(name)); 
+    char *base_name = basename(strdup(name));
+    XDGDesktopEntry *fallback = NULL;
 
     for (size_t i = 0; i < entries->size; i++)
     {
@@ -238,6 +239,7 @@ XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_c
 
         if (entry->extra_category == extra_category)
         {
+            fallback = entry;
             if (strstr(entry->exec, base_name) != NULL)
             {
                 free(base_name);
@@ -247,21 +249,9 @@ XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_c
     }
 
     printf("Couldn't find %s. Using a fallback\n", base_name);
-    // Couldn't find it, let's search for the first valid one
-    for (size_t i = 0; i < entries->size; i++)
-    {
-        XDGDesktopEntry *entry = entries->data[i];
-
-        if (entry->extra_category == extra_category)
-        {
-            free(base_name);
-            // Found one, let's use it
-            return entry;
-        }
-    }
 
     free(base_name);
-    return NULL;
+    return fallback;
 }
 
 static void ParseExec(XDGDesktopEntry *entry, const char *exec)
@@ -337,10 +327,6 @@ static void ParseCategories(XDGDesktopEntry *entry, char *categories)
             entry->extra_category_name = strdup(token);
             entry->extra_category = extra;
         }
-
-        // We reached the end, exit the loop
-        //if (main != Invalid && extra != IgnoredOrInvalid)
-        //    break;
 
         token = strtok_r(NULL, ";", &reserved);
     }
