@@ -25,7 +25,8 @@ typedef struct
     TrayPositions tray_pos;
     int tray_height;
     bool tray_use_menu_icon;
-    char tray_menu_text;
+    char *tray_menu_icon;
+    char *tray_menu_text;
     bool tray_auto_hide;
     int tray_icon_spacing;
     bool tray_outline_enabled;
@@ -33,6 +34,7 @@ typedef struct
 
     int root_menu_height;
 
+    char *global_decorations_style;
     char *global_bg_color_active;
     char *global_bg_color_inactive;
     char *global_fg_color_active;
@@ -59,6 +61,11 @@ typedef struct
     char *window_font;
     char *window_font_alignment;
     int window_font_size;
+    char *window_focus_model;
+    char *window_snap_mode;
+    int window_snap_distance;
+    char *window_move_mode;
+    char *window_resize_mode;
 
     bool menu_use_global_colors;
     bool menu_use_global_font;

@@ -202,6 +202,7 @@ static void GenJWMIcons(JWM *jwm)
     // Start of the icon xml file
     WRITE_CFG("<?xml version=\"1.0\"?>\n");
     WRITE_CFG("<JWM>\n");
+    WRITE_CFG("   <IconPath>/usr/share/jwm/</IconPath>\n");
     WRITE_CFG("   <IconPath>/usr/share/pixmaps/</IconPath>\n");
     WRITE_CFG("</JWM>");
 
@@ -265,10 +266,10 @@ static int GenJWMPreferences(JWM *jwm)
     WRITE_CFG("   </Desktops>\n");
     WRITE_CFG("   <DoubleClickSpeed>400</DoubleClickSpeed>\n");
     WRITE_CFG("   <DoubleClickDelta>2</DoubleClickDelta>\n");
-    WRITE_CFG("   <FocusModel>click</FocusModel>\n");
-    WRITE_CFG("   <SnapMode distance=\"10\">border</SnapMode>\n");
-    WRITE_CFG("   <MoveMode>outline</MoveMode>\n");
-    WRITE_CFG("   <ResizeMode>outline</ResizeMode>\n");
+    WRITE_CFG("   <FocusModel>%s</FocusModel>\n", jwm->window_focus_model);
+    WRITE_CFG("   <SnapMode distance=\"%d\">%s</SnapMode>\n", jwm->window_snap_distance, jwm->window_snap_mode);
+    WRITE_CFG("   <MoveMode>%s</MoveMode>\n", jwm->window_move_mode);
+    WRITE_CFG("   <ResizeMode>%s</ResizeMode>\n", jwm->window_resize_mode);
     WRITE_CFG("</JWM>\n");
 
     fclose(fp);
@@ -293,7 +294,7 @@ static int GenJWMBinds(JWM *jwm)
 
     printf("Writing to %s\n", path);
 
-    // Start of the prefs xml file
+    // Start of the binds xml file
     WRITE_CFG("<?xml version=\"1.0\"?>\n");
     WRITE_CFG("<JWM>\n");
     WRITE_CFG("    <Key key=\"Up\">up</Key>\n");
@@ -340,6 +341,10 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
             char *bg_color_inactive = jwm->window_bg_color_inactive;
             char *bg_color_active = jwm->window_bg_color_active;
 
+            char *font = jwm->menu_font;
+            char *font_alignment = jwm->menu_font_alignment;
+            int font_size = jwm->menu_font_size;
+
             if (jwm->window_use_global_colors)
             {
                 fg_color_inactive = jwm->global_fg_color_inactive;
@@ -347,10 +352,6 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
                 bg_color_inactive = jwm->global_bg_color_inactive;
                 bg_color_active = jwm->global_bg_color_active;
             }
-
-            char *font = jwm->menu_font;
-            char *font_alignment = jwm->menu_font_alignment;
-            int font_size = jwm->menu_font_size;
 
             if (jwm->menu_use_global_font)
             {
@@ -360,7 +361,7 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
             }
 
             //WRITE_CFG("    <%s decorations=\"%s\">\n", style_types[style].key, "flat");
-            WRITE_CFG(" decorations=\"%s\">\n", "flat");
+            WRITE_CFG(" decorations=\"%s\">\n", jwm->global_decorations_style);
             WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", font_alignment, font, font_size);
             WRITE_CFG("        <Height>%d</Height>\n", jwm->window_height);
             WRITE_CFG("        <Width>%d</Width>\n", jwm->window_width);
@@ -368,14 +369,24 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
             WRITE_CFG("        <Foreground>%s</Foreground>\n", fg_color_inactive);
             WRITE_CFG("        <Background>%s</Background>\n", bg_color_inactive);
             WRITE_CFG("        <Opacity>%.2f</Opacity>\n", jwm->window_opacity_inactive);
+
             if (jwm->window_outline_enabled)
+            {
                 WRITE_CFG("        <Outline>%s</Outline>\n", jwm->window_outline_color_inactive);
-            WRITE_CFG("        <Active>\n");
-            WRITE_CFG("            <Foreground>%s</Foreground>\n", fg_color_active);
-            WRITE_CFG("            <Background>%s</Background>\n", bg_color_active);
-            WRITE_CFG("            <Opacity>%.2f</Opacity>\n", jwm->window_opacity_active);
-            if (jwm->window_outline_enabled)
+                WRITE_CFG("        <Active>\n");
+                WRITE_CFG("            <Foreground>%s</Foreground>\n", fg_color_active);
+                WRITE_CFG("            <Background>%s</Background>\n", bg_color_active);
+                WRITE_CFG("            <Opacity>%.2f</Opacity>\n", jwm->window_opacity_active);
                 WRITE_CFG("            <Outline>%s</Outline>\n", jwm->window_outline_color_active);
+            }
+            else
+            {
+                WRITE_CFG("        <Active>\n");
+                WRITE_CFG("            <Foreground>%s</Foreground>\n", fg_color_active);
+                WRITE_CFG("            <Background>%s</Background>\n", bg_color_active);
+                WRITE_CFG("            <Opacity>%.2f</Opacity>\n", jwm->window_opacity_active);
+            }
+
             WRITE_CFG("        </Active>\n");
             break;
         }
@@ -389,7 +400,7 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
         }
         case TrayStyle:
         {
-            WRITE_CFG(" decorations=\"%s\">\n", "flat");
+            WRITE_CFG(" decorations=\"%s\">\n", jwm->global_decorations_style);
             WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", jwm->global_font_alignment, jwm->global_font, jwm->global_font_size);
             WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
             WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
@@ -432,7 +443,7 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
         case PagerStyle:
         {
             WRITE_CFG(">\n");
-            WRITE_CFG("        <Outline>#FFFFFF</Outline>\n");
+            WRITE_CFG("        <Outline>%s</Outline>\n", jwm->global_outline_color);
             WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
             WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
             WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", jwm->global_font_alignment, jwm->global_font, jwm->global_font_size);
@@ -458,7 +469,7 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
                 bg_color_active = jwm->global_bg_color_active;
             }
 
-            WRITE_CFG(" decorations=\"%s\">\n", "flat");
+            WRITE_CFG(" decorations=\"%s\">\n", jwm->global_decorations_style);
             WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", jwm->global_font_alignment, jwm->global_font, jwm->global_font_size);
             WRITE_CFG("        <Foreground>%s</Foreground>\n", fg_color_inactive);
             WRITE_CFG("        <Background>%s</Background>\n", bg_color_inactive);
@@ -620,12 +631,24 @@ static void GenJWMTray(JWM *jwm, DArray *entries, HashMap *icons)
         printf("Error! Tray Position Not Implemented Yet!\n");
     }
 
-    WRITE_CFG("       <TrayButton icon=\"/usr/share/jwm/jwm-blue.svg\">root:1</TrayButton>\n");
+    if (jwm->tray_use_menu_icon)
+    {
+        char *icon = FindIcon(jwm->tray_menu_icon, 32, 1);
+        if (icon == NULL)
+            icon = jwm->tray_menu_icon;
+
+        WRITE_CFG("       <TrayButton label=\"%s\" icon=\"%s\">root:1</TrayButton>\n", jwm->tray_menu_text, icon);
+    }
+    else
+    {
+        WRITE_CFG("       <TrayButton label=\"%s\">root:1</TrayButton>\n", jwm->tray_menu_text);
+    }
+
     WRITE_CFG("       <Spacer width=\"4\"/>\n");
     WriteJWMTray(jwm, entries, fp, icons);
     WRITE_CFG("       <TaskList maxwidth=\"200\"/>\n");
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
-    WRITE_CFG("       <TrayButton popup=\"Show Desktop\" icon=\"desktop\">showdesktop</TrayButton>\n");
+    WRITE_CFG("       <TrayButton popup=\"Show Desktop\" icon=\"%s\">showdesktop</TrayButton>\n", FindIcon("desktop", 32, 1));
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
     WRITE_CFG("       <Pager labeled=\"true\"/>\n");
     WRITE_CFG("       <Spacer width=\"%d\"/>\n",jwm->tray_icon_spacing);
@@ -759,6 +782,7 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
         CFG_STR("global_browser", "firefox", CFGF_NONE),
         CFG_STR("global_terminal", "xterm", CFGF_NONE),
         CFG_STR("global_filemanager", "pcmanfm", CFGF_NONE),
+        CFG_STR("global_decorations_style", "flat", CFGF_NONE),
         CFG_STR("global_bg_color_active", "#222222", CFGF_NONE),
         CFG_STR("global_bg_color_inactive", "#111111", CFGF_NONE),
         CFG_STR("global_fg_color_active", "#DDDDDD", CFGF_NONE),
@@ -785,6 +809,11 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
         CFG_STR("window_font", "Sans", CFGF_NONE),
         CFG_STR("window_font_alignment", "center", CFGF_NONE),
         CFG_INT("window_font_size", 10, CFGF_NONE),
+        CFG_STR("window_focus_model", "click", CFGF_NONE),
+        CFG_STR("window_snap_mode", "border", CFGF_NONE),
+        CFG_INT("window_snap_distance", 10, CFGF_NONE),
+        CFG_STR("window_move_mode", "opaque", CFGF_NONE),
+        CFG_STR("window_resize_mode", "outline", CFGF_NONE),
 
         CFG_BOOL("menu_use_global_colors", true, CFGF_NONE),
         CFG_BOOL("menu_use_global_font", true, CFGF_NONE),
@@ -801,6 +830,9 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
 
         CFG_INT("rootmenu_height", 26, CFGF_NONE),
         CFG_STR("tray_position", "bottom", CFGF_NONE),
+        CFG_BOOL("tray_use_menu_icon", false, CFGF_NONE),
+        CFG_STR("tray_menu_icon", "jwm-blue", CFGF_NONE),
+        CFG_STR("tray_menu_text", "Menu", CFGF_NONE),
         CFG_BOOL("tray_autohide", false, CFGF_NONE),
         CFG_INT("tray_height", 32, CFGF_NONE),
         CFG_INT("tray_icon_spacing", 4, CFGF_NONE),
@@ -825,6 +857,7 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
     JWM *jwm = calloc(1, sizeof(*jwm));
 
     // No input checking here yet...
+    jwm->global_decorations_style = cfg_getstr(cfg, "global_decorations_style");
     jwm->global_bg_color_active = cfg_getstr(cfg, "global_bg_color_active");
     jwm->global_bg_color_inactive = cfg_getstr(cfg, "global_bg_color_inactive");
     jwm->global_fg_color_active = cfg_getstr(cfg, "global_fg_color_active");
@@ -856,6 +889,12 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
     jwm->window_font_alignment = cfg_getstr(cfg, "window_font_alignment");
     jwm->window_font_size = cfg_getint(cfg, "window_font_size");
 
+    jwm->window_focus_model = cfg_getstr(cfg, "window_focus_model");
+    jwm->window_snap_mode = cfg_getstr(cfg, "window_snap_mode");
+    jwm->window_snap_distance = cfg_getint(cfg, "window_snap_distance");
+    jwm->window_move_mode = cfg_getstr(cfg, "window_move_mode");
+    jwm->window_resize_mode = cfg_getstr(cfg, "window_resize_mode");
+
     jwm->menu_use_global_colors = cfg_getbool(cfg, "menu_use_global_colors");
     jwm->menu_outline_enabled = cfg_getbool(cfg, "menu_outline_enabled");
     jwm->menu_bg_color_active = cfg_getstr(cfg, "menu_bg_color_active");
@@ -868,10 +907,12 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
     jwm->menu_font_alignment = cfg_getstr(cfg, "menu_font_alignment");
     jwm->menu_font_size = cfg_getint(cfg, "menu_font_size");
 
-
     jwm->tray_auto_hide = cfg_getbool(cfg, "tray_autohide");
     const char *tpos = cfg_getstr(cfg, "tray_position");
     jwm->tray_pos = GetTrayPosition(tpos);
+    jwm->tray_use_menu_icon = cfg_getbool(cfg, "tray_use_menu_icon");
+    jwm->tray_menu_icon = cfg_getstr(cfg, "tray_menu_icon");
+    jwm->tray_menu_text = cfg_getstr(cfg, "tray_menu_text");
     jwm->tray_height = cfg_getint(cfg, "tray_height");
     jwm->tray_icon_spacing = cfg_getint(cfg, "tray_icon_spacing");
     jwm->tray_outline_enabled = cfg_getbool(cfg, "tray_outline_enabled");
@@ -892,7 +933,7 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
 
     GenJWMTray(jwm, entries, icons);
 
-    UseTheme(jwm, BreezeDark);
+    //UseTheme(jwm, BreezeDark);
 
     if (GenJWMStyles(jwm) != 0)
         goto failure;

@@ -26,11 +26,23 @@ int UseTheme(JWM *jwm, ColorTheme theme)
             //@define-color theme_unfocused_fg_color_breeze #fcfcfc;
     
             //jwm->global_bg_color_active = "#2a2e32";
+            // text color #fcfcfc
+            // selection background #3daee9
+            // view background #1b1e20
+            // view background inactive #232629
+            // view normal text #fcfcfc
+            // view active text #3daee9
+            // view inactive text #a1a9b1
+            // window background #2a2e32
+            // button background #31363b
+            // inactive text #a1a9b1
+            // decorations #3daee9
+
             jwm->global_bg_color_active = "#31363B";
             jwm->global_bg_color_inactive = "#2a2e32";
 
             jwm->global_fg_color_active = "#fcfcfc";
-            jwm->global_fg_color_inactive = "#fcfcfc";
+            jwm->global_fg_color_inactive = "#a1a9b1";
             break;
         }
         default:
