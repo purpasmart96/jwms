@@ -21,10 +21,30 @@
 #include "desktop_entries.h"
 
 #include "config.h"
-#include "themes.h"
 
 #define WRITE_CFG(...) \
     fprintf(fp, __VA_ARGS__)
+
+#define GetBGColor(type, state) \
+    jwm->type##_use_global_colors ? jwm->global_bg_color_##state : jwm->type##_bg_color_##state
+
+#define GetFGColor(type, state) \
+    jwm->type##_use_global_colors ? jwm->global_fg_color_##state : jwm->type##_fg_color_##state
+
+#define GetFontName(type) \
+    jwm->type##_use_global_font ? jwm->global_font : jwm->type##_font
+
+#define GetFontAlignment(type) \
+    jwm->type##_use_global_font ? jwm->global_font_alignment : jwm->type##_font_alignment
+
+#define GetFontSize(type) \
+    jwm->type##_use_global_font ? jwm->global_font_size : jwm->type##_font_size
+
+#define GetDecorationsStyle(type) \
+    jwm->type##_use_global_decorations_style ? jwm->global_decorations_style : jwm->type##_decorations_style
+
+#define GetOutlineColor(type, state) \
+    jwm->tray_use_global_colors ? jwm->global_outline_color : jwm->type##_outline_color_##state
 
 static const char *category_icons[] =
 {
@@ -82,6 +102,25 @@ static TrayPositions GetTrayPosition(const char *tpos)
 static float GetValidOpacity(float opacity)
 {
     return CLAMP(opacity, 0.0, 1.0);
+}
+
+typedef struct
+{
+    char *name;
+    char *alignment;
+    int size;
+} FontInfo;
+
+static FontInfo GetFontInfo(JWM *jwm, Styles type)
+{
+    FontInfo font =
+    {
+        .name = jwm->tray_use_global_font ? jwm->global_font : jwm->tray_font,
+        .alignment = jwm->tray_use_global_font ? jwm->global_font_alignment : jwm->tray_font_alignment,
+        .size = jwm->tray_use_global_font ? jwm->global_font_size : jwm->tray_font_size
+    };
+
+    return font;
 }
 
 static int ReadConfigFile(cfg_t *cfg)
@@ -336,6 +375,7 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
     {
         case WindowStyle:
         {
+            /*
             char *fg_color_inactive = jwm->window_fg_color_inactive;
             char *fg_color_active = jwm->window_fg_color_active;
             char *bg_color_inactive = jwm->window_bg_color_inactive;
@@ -353,37 +393,38 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
                 bg_color_active = jwm->global_bg_color_active;
             }
 
-            if (jwm->menu_use_global_font)
+            if (jwm->window_use_global_font)
             {
                 font = jwm->global_font;
                 font_alignment = jwm->global_font_alignment;
                 font_size = jwm->global_font_size;
             }
+            */
 
             //WRITE_CFG("    <%s decorations=\"%s\">\n", style_types[style].key, "flat");
-            WRITE_CFG(" decorations=\"%s\">\n", jwm->global_decorations_style);
-            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", font_alignment, font, font_size);
+            WRITE_CFG(" decorations=\"%s\">\n", GetDecorationsStyle(window));
+            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(window), GetFontName(window), GetFontSize(window));
             WRITE_CFG("        <Height>%d</Height>\n", jwm->window_height);
             WRITE_CFG("        <Width>%d</Width>\n", jwm->window_width);
             WRITE_CFG("        <Corner>%d</Corner>\n", jwm->window_corner_rounding);
-            WRITE_CFG("        <Foreground>%s</Foreground>\n", fg_color_inactive);
-            WRITE_CFG("        <Background>%s</Background>\n", bg_color_inactive);
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", GetFGColor(window, inactive));
+            WRITE_CFG("        <Background>%s</Background>\n", GetBGColor(window, inactive));
             WRITE_CFG("        <Opacity>%.2f</Opacity>\n", jwm->window_opacity_inactive);
 
             if (jwm->window_outline_enabled)
             {
                 WRITE_CFG("        <Outline>%s</Outline>\n", jwm->window_outline_color_inactive);
                 WRITE_CFG("        <Active>\n");
-                WRITE_CFG("            <Foreground>%s</Foreground>\n", fg_color_active);
-                WRITE_CFG("            <Background>%s</Background>\n", bg_color_active);
+                WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(window, active));
+                WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(window, active));
                 WRITE_CFG("            <Opacity>%.2f</Opacity>\n", jwm->window_opacity_active);
-                WRITE_CFG("            <Outline>%s</Outline>\n", jwm->window_outline_color_active);
+                WRITE_CFG("            <Outline>%s</Outline>\n", GetOutlineColor(window, active));
             }
             else
             {
                 WRITE_CFG("        <Active>\n");
-                WRITE_CFG("            <Foreground>%s</Foreground>\n", fg_color_active);
-                WRITE_CFG("            <Background>%s</Background>\n", bg_color_active);
+                WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(window, active));
+                WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(window, active));
                 WRITE_CFG("            <Opacity>%.2f</Opacity>\n", jwm->window_opacity_active);
             }
 
@@ -393,6 +434,7 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
         case ClockStyle:
         {
             WRITE_CFG(">\n");
+            //WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(clock), GetFontName(clock), GetFontSize(clock));
             WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", jwm->global_font_alignment, jwm->global_font, jwm->global_font_size);
             WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
             WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
@@ -400,24 +442,24 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
         }
         case TrayStyle:
         {
-            WRITE_CFG(" decorations=\"%s\">\n", jwm->global_decorations_style);
-            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", jwm->global_font_alignment, jwm->global_font, jwm->global_font_size);
-            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
+            WRITE_CFG(" decorations=\"%s\">\n", GetDecorationsStyle(tray));
+            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(tray), GetFontName(tray), GetFontSize(tray));
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", GetFGColor(tray, inactive));
+            WRITE_CFG("        <Background>%s</Background>\n", GetBGColor(tray, inactive));
 
             if (jwm->tray_outline_enabled)
             {
-                WRITE_CFG("        <Outline>%s</Outline>\n", jwm->global_outline_color);
+                WRITE_CFG("        <Outline>%s</Outline>\n", GetOutlineColor(tray, inactive));
                 WRITE_CFG("        <Active>\n");
-                WRITE_CFG("            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
-                WRITE_CFG("            <Background>%s</Background>\n", jwm->global_bg_color_active);
-                WRITE_CFG("            <Outline>%s</Outline>\n", jwm->global_outline_color);
+                WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(tray, active));
+                WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(tray, active));
+                WRITE_CFG("            <Outline>%s</Outline>\n", GetOutlineColor(tray, active));
             }
             else
             {
                 WRITE_CFG("        <Active>\n");
-                WRITE_CFG("            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
-                WRITE_CFG("            <Background>%s</Background>\n", jwm->global_bg_color_active);
+                WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(tray, active));
+                WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(tray, active));
             }
     
             WRITE_CFG("        </Active>\n");
@@ -427,16 +469,25 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
         case TaskListStyle:
         {
             WRITE_CFG(" list=\"all\" group=\"true\">\n");
-            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", jwm->global_font_alignment, jwm->global_font, jwm->global_font_size);
-            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
+            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(tray), GetFontName(tray), GetFontSize(tray));
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", GetFGColor(tray, inactive));
+            WRITE_CFG("        <Background>%s</Background>\n", GetBGColor(tray, inactive));
+
             if (jwm->tray_outline_enabled)
-                WRITE_CFG("        <Outline>%s</Outline>\n", jwm->global_outline_color);
-            WRITE_CFG("        <Active>\n");
-            WRITE_CFG("            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
-            WRITE_CFG("            <Background>%s</Background>\n", jwm->global_bg_color_active);
-            if (jwm->tray_outline_enabled)
-                WRITE_CFG("            <Outline>%s</Outline>\n", jwm->global_outline_color);
+            {
+                WRITE_CFG("        <Outline>%s</Outline>\n", GetOutlineColor(tray, inactive));
+                WRITE_CFG("        <Active>\n");
+                WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(tray, active));
+                WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(tray, active));
+                WRITE_CFG("            <Outline>%s</Outline>\n", GetOutlineColor(tray, active));
+            }
+            else
+            {
+                WRITE_CFG("        <Active>\n");
+                WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(tray, active));
+                WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(tray, active));
+            }
+
             WRITE_CFG("        </Active>\n");
             break;
         }
@@ -460,6 +511,7 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
             char *fg_color_active = jwm->menu_fg_color_active;
             char *bg_color_inactive = jwm->menu_bg_color_inactive;
             char *bg_color_active = jwm->menu_bg_color_active;
+            char *menu_outline_color = jwm->menu_outline_color;
 
             if (jwm->menu_use_global_colors)
             {
@@ -467,14 +519,15 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
                 fg_color_active = jwm->global_fg_color_active;
                 bg_color_inactive = jwm->global_bg_color_inactive;
                 bg_color_active = jwm->global_bg_color_active;
+                menu_outline_color = jwm->global_outline_color;
             }
 
-            WRITE_CFG(" decorations=\"%s\">\n", jwm->global_decorations_style);
-            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", jwm->global_font_alignment, jwm->global_font, jwm->global_font_size);
+            WRITE_CFG(" decorations=\"%s\">\n", GetDecorationsStyle(menu));
+            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(menu), GetFontName(menu), GetFontSize(menu));
             WRITE_CFG("        <Foreground>%s</Foreground>\n", fg_color_inactive);
             WRITE_CFG("        <Background>%s</Background>\n", bg_color_inactive);
             if (jwm->menu_outline_enabled)
-                WRITE_CFG("        <Outline>%s</Outline>\n", jwm->menu_outline_color);
+                WRITE_CFG("        <Outline>%s</Outline>\n", menu_outline_color);
             WRITE_CFG("        <Active>\n");
             WRITE_CFG("            <Foreground>%s</Foreground>\n", fg_color_active);
             WRITE_CFG("            <Background>%s</Background>\n", bg_color_active);
@@ -792,12 +845,14 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
         CFG_STR("global_font_alignment", "center", CFGF_NONE),
         CFG_INT("global_font_size", 10, CFGF_NONE),
 
+        CFG_BOOL("window_use_global_decorations_style", true, CFGF_NONE),
         CFG_BOOL("window_use_global_colors", true, CFGF_NONE),
         CFG_BOOL("window_use_global_font", true, CFGF_NONE),
         CFG_BOOL("window_outline_enabled", false, CFGF_NONE),
         CFG_INT("window_height", 26, CFGF_NONE),
         CFG_INT("window_width", 4, CFGF_NONE),
         CFG_INT("window_corner_rounding", 4, CFGF_NONE),
+        CFG_STR("window_decorations_style", "flat", CFGF_NONE),
         CFG_STR("window_bg_color_active", "#222222", CFGF_NONE),
         CFG_STR("window_bg_color_inactive", "#111111", CFGF_NONE),
         CFG_STR("window_fg_color_active", "#DDDDDD", CFGF_NONE),
@@ -815,9 +870,11 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
         CFG_STR("window_move_mode", "opaque", CFGF_NONE),
         CFG_STR("window_resize_mode", "outline", CFGF_NONE),
 
+        CFG_BOOL("menu_use_global_decorations_style", true, CFGF_NONE),
         CFG_BOOL("menu_use_global_colors", true, CFGF_NONE),
         CFG_BOOL("menu_use_global_font", true, CFGF_NONE),
         CFG_BOOL("menu_outline_enabled", false, CFGF_NONE),
+        CFG_STR("menu_decorations_style", "flat", CFGF_NONE),
         CFG_STR("menu_bg_color_active", "#222222", CFGF_NONE),
         CFG_STR("menu_bg_color_inactive", "#111111", CFGF_NONE),
         CFG_STR("menu_fg_color_active", "#DDDDDD", CFGF_NONE),
@@ -829,15 +886,29 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
         CFG_INT("menu_font_size", 10, CFGF_NONE),
 
         CFG_INT("rootmenu_height", 26, CFGF_NONE),
-        CFG_STR("tray_position", "bottom", CFGF_NONE),
+
+        CFG_BOOL("tray_use_global_decorations_style", true, CFGF_NONE),
+        CFG_BOOL("tray_use_global_colors", true, CFGF_NONE),
+        CFG_BOOL("tray_use_global_font", true, CFGF_NONE),
         CFG_BOOL("tray_use_menu_icon", false, CFGF_NONE),
+        CFG_BOOL("tray_outline_enabled", false, CFGF_NONE),
+        CFG_STR("tray_decorations_style", "flat", CFGF_NONE),
+        CFG_STR("tray_bg_color_active", "#222222", CFGF_NONE),
+        CFG_STR("tray_bg_color_inactive", "#111111", CFGF_NONE),
+        CFG_STR("tray_fg_color_active", "#DDDDDD", CFGF_NONE),
+        CFG_STR("tray_fg_color_inactive", "#CCCCCC", CFGF_NONE),
+        CFG_STR("tray_outline_color_active", "#FFFFFF", CFGF_NONE),
+        CFG_STR("tray_outline_color_inactive", "#FFFFFF", CFGF_NONE),
+        CFG_STR("tray_position", "bottom", CFGF_NONE),
+        CFG_BOOL("tray_autohide", false, CFGF_NONE),
         CFG_STR("tray_menu_icon", "jwm-blue", CFGF_NONE),
         CFG_STR("tray_menu_text", "Menu", CFGF_NONE),
-        CFG_BOOL("tray_autohide", false, CFGF_NONE),
         CFG_INT("tray_height", 32, CFGF_NONE),
         CFG_INT("tray_icon_spacing", 4, CFGF_NONE),
-        CFG_BOOL("tray_outline_enabled", false, CFGF_NONE),
         CFG_FLOAT("tray_opacity", 0.95, CFGF_NONE),
+        CFG_STR("tray_font", "Sans", CFGF_NONE),
+        CFG_STR("tray_font_alignment", "center", CFGF_NONE),
+        CFG_INT("tray_font_size", 10, CFGF_NONE),
         CFG_END()
     };
 
@@ -871,11 +942,13 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
     jwm->filemanager_name = cfg_getstr(cfg, "global_filemanager");
     jwm->browser_name = cfg_getstr(cfg, "global_browser");
 
+    jwm->window_use_global_decorations_style = cfg_getbool(cfg, "window_use_global_decorations_style");
     jwm->window_use_global_colors = cfg_getbool(cfg, "window_use_global_colors");
     jwm->window_use_global_font = cfg_getbool(cfg, "window_use_global_font");
     jwm->window_height = cfg_getint(cfg, "window_height");
     jwm->window_width = cfg_getint(cfg, "window_width");
     jwm->window_corner_rounding = cfg_getint(cfg, "window_corner_rounding");
+    jwm->window_decorations_style = cfg_getstr(cfg, "window_decorations_style");
     jwm->window_bg_color_active = cfg_getstr(cfg, "window_bg_color_active");
     jwm->window_bg_color_inactive = cfg_getstr(cfg, "window_bg_color_inactive");
     jwm->window_fg_color_active = cfg_getstr(cfg, "window_fg_color_active");
@@ -895,8 +968,10 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
     jwm->window_move_mode = cfg_getstr(cfg, "window_move_mode");
     jwm->window_resize_mode = cfg_getstr(cfg, "window_resize_mode");
 
+    jwm->menu_use_global_decorations_style = cfg_getbool(cfg, "menu_use_global_decorations_style");
     jwm->menu_use_global_colors = cfg_getbool(cfg, "menu_use_global_colors");
     jwm->menu_outline_enabled = cfg_getbool(cfg, "menu_outline_enabled");
+    jwm->menu_decorations_style = cfg_getstr(cfg, "menu_decorations_style");
     jwm->menu_bg_color_active = cfg_getstr(cfg, "menu_bg_color_active");
     jwm->menu_bg_color_inactive = cfg_getstr(cfg, "menu_bg_color_inactive");
     jwm->menu_fg_color_active = cfg_getstr(cfg, "menu_fg_color_active");
@@ -907,16 +982,29 @@ int WriteJWMConfig(DArray *entries, HashMap *icons)
     jwm->menu_font_alignment = cfg_getstr(cfg, "menu_font_alignment");
     jwm->menu_font_size = cfg_getint(cfg, "menu_font_size");
 
+    jwm->tray_use_global_decorations_style = cfg_getbool(cfg, "tray_use_global_decorations_style");
+    jwm->tray_use_global_colors = cfg_getbool(cfg, "tray_use_global_colors");
+    jwm->tray_use_global_font = cfg_getbool(cfg, "tray_use_global_font");
+    jwm->tray_use_menu_icon = cfg_getbool(cfg, "tray_use_menu_icon");
+    jwm->tray_outline_enabled = cfg_getbool(cfg, "tray_outline_enabled");
+    jwm->tray_decorations_style = cfg_getstr(cfg, "tray_decorations_style");
+    jwm->tray_bg_color_active = cfg_getstr(cfg, "tray_bg_color_active");
+    jwm->tray_bg_color_inactive = cfg_getstr(cfg, "tray_bg_color_inactive");
+    jwm->tray_fg_color_active = cfg_getstr(cfg, "tray_fg_color_active");
+    jwm->tray_fg_color_inactive = cfg_getstr(cfg, "tray_fg_color_inactive");
+    jwm->tray_outline_color_active = cfg_getstr(cfg, "tray_outline_color_active");
+    jwm->tray_outline_color_inactive = cfg_getstr(cfg, "tray_outline_color_inactive");
     jwm->tray_auto_hide = cfg_getbool(cfg, "tray_autohide");
     const char *tpos = cfg_getstr(cfg, "tray_position");
     jwm->tray_pos = GetTrayPosition(tpos);
-    jwm->tray_use_menu_icon = cfg_getbool(cfg, "tray_use_menu_icon");
     jwm->tray_menu_icon = cfg_getstr(cfg, "tray_menu_icon");
     jwm->tray_menu_text = cfg_getstr(cfg, "tray_menu_text");
     jwm->tray_height = cfg_getint(cfg, "tray_height");
     jwm->tray_icon_spacing = cfg_getint(cfg, "tray_icon_spacing");
-    jwm->tray_outline_enabled = cfg_getbool(cfg, "tray_outline_enabled");
     jwm->tray_opacity = GetValidOpacity(cfg_getfloat(cfg, "tray_opacity"));
+    jwm->tray_font = cfg_getstr(cfg, "tray_font");
+    jwm->tray_font_alignment = cfg_getstr(cfg, "tray_font_alignment");
+    jwm->tray_font_size = cfg_getint(cfg, "tray_font_size");
 
     jwm->root_menu_height = cfg_getint(cfg, "rootmenu_height");
 
