@@ -207,9 +207,14 @@ void EntriesPrint(BTreeNode *entries)
     BSTInOrderTraverse(entries, EntryPrint);
 }
 
-void EntryRemove(BTreeNode *entries, char *key)
+void EntryRemove(BTreeNode *entries, const char *key)
 {
     BSTDestroyNode(entries, key, NameCmp2, DestroyEntry);
+}
+
+XDGDesktopEntry *EntriesSearch(BTreeNode *entries, const char *key)
+{
+    return BSTSearchNode(entries, key, NameCmp2)->data;
 }
 
 void EntriesDestroy(BTreeNode *entries)

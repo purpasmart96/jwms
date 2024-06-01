@@ -687,22 +687,32 @@ static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
 
     if (jwm->tray_use_menu_icon)
     {
-        char *icon = FindIcon(jwm->tray_menu_icon, 32, 1);
-        if (icon == NULL)
-            icon = jwm->tray_menu_icon;
+        char *resolved_icon = FindIcon(jwm->tray_menu_icon, 32, 1);
 
-        WRITE_CFG("       <TrayButton label=\"%s\" icon=\"%s\">root:1</TrayButton>\n", jwm->tray_menu_text, icon);
+        // Use the new icon if found, otherwise use the provided icon
+        const char *icon_path = (resolved_icon != NULL) ? resolved_icon : jwm->tray_menu_icon;
+
+        // Write configuration with the icon
+        WRITE_CFG("       <TrayButton label=\"%s\" icon=\"%s\">root:1</TrayButton>\n", jwm->tray_menu_text, icon_path);
+
+        // Free the resolved icon if it was dynamically allocated
+        if (resolved_icon != NULL)
+        {
+            free(resolved_icon);
+        }
     }
     else
     {
+        // Write configuration without the icon
         WRITE_CFG("       <TrayButton label=\"%s\">root:1</TrayButton>\n", jwm->tray_menu_text);
     }
 
+    char *show_desktop_icon = FindIcon("desktop", 32, 1);
     WRITE_CFG("       <Spacer width=\"4\"/>\n");
     WriteJWMTray(jwm, entries, fp, icons);
     WRITE_CFG("       <TaskList maxwidth=\"200\"/>\n");
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
-    WRITE_CFG("       <TrayButton popup=\"Show Desktop\" icon=\"%s\">showdesktop</TrayButton>\n", FindIcon("desktop", 32, 1));
+    WRITE_CFG("       <TrayButton popup=\"Show Desktop\" icon=\"%s\">showdesktop</TrayButton>\n", show_desktop_icon);
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
     WRITE_CFG("       <Pager labeled=\"true\"/>\n");
     WRITE_CFG("       <Spacer width=\"%d\"/>\n",jwm->tray_icon_spacing);
@@ -713,6 +723,7 @@ static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
     WRITE_CFG("   </Tray>\n");
     WRITE_CFG("</JWM>");
 
+    free(show_desktop_icon);
     fclose(fp);
 }
 
@@ -731,7 +742,7 @@ static void WriteMenuCategoriesInOrder(BTreeNode *entries, HashMap *icons, FILE 
             {
                 icon = entry->icon;
             }
-            
+
             if (!entry->terminal_required)
             {
                 WRITE_CFG("            <Program icon=\"%s\" label=\"%s\">%s</Program>\n",

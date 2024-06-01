@@ -17,7 +17,7 @@ BTreeNode *BSTCreateNode(void *data)
 }
 
 // Function to search for a node with a specific key in the tree
-BTreeNode *BSTSearchNode(BTreeNode *root, void *key, int (*CompareCallback)(const void*, const void*))
+BTreeNode *BSTSearchNode(BTreeNode *root, const void *key, int (*CompareCallback)(const void*, const void*))
 {
     if (root == NULL)
     {
@@ -118,7 +118,7 @@ int BSTGetHeight(BTreeNode *root)
 }
 
 // Function to delete a key from the BST
-BTreeNode *BSTDestroyNode(BTreeNode *root, void *key, int (*CompareCallback)(const void*, const void*), void (*DestroyCallback)(void*))
+BTreeNode *BSTDestroyNode(BTreeNode *root, const void *key, int (*CompareCallback)(const void*, const void*), void (*DestroyCallback)(void*))
 {
     if (root == NULL)
     {

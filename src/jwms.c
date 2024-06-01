@@ -70,7 +70,7 @@ int main()
 
     //EntriesPrint(entries);
     // Test
-    //XDGDesktopEntry *entry = EntriesSearchExec(entries, "firefox-esr");
+    //XDGDesktopEntry *entry = EntriesSearch(entries, "Firefox Web Browser");
     //if (entry != NULL)
     //    printf("Search found:\n%s\n%s\n%s\n%s\n", entry->name, entry->category_name, entry->exec, entry->icon);
 

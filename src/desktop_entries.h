@@ -81,10 +81,9 @@ typedef struct
 } XDGDesktopEntry;
 
 void EntriesPrint(BTreeNode *entries);
-void EntryRemove(BTreeNode *entries, char *key);
+void EntryRemove(BTreeNode *entries, const char *key);
 void EntriesDestroy(BTreeNode *entries);
-//bool EntryExecExists(HashMap2 *entries, const char *key);
-//XDGDesktopEntry *EntriesSearchExec(HashMap2 *entries, const char *key);
+XDGDesktopEntry *EntriesSearch(BTreeNode *entries, const char *key);
 XDGDesktopEntry *GetCoreProgram(BTreeNode *entries, XDGAdditionalCategories extra_category, char *name);
 int LoadDesktopEntries(BTreeNode **entries);
 

@@ -103,8 +103,6 @@ typedef struct
     char *filemanager_name;
 } JWM;
 
-//int WriteJWMConfig(HashMap2 *entries, HashMap *icons);
 int WriteJWMConfig(BTreeNode *entries, HashMap *icons);
-
 
 #endif

@@ -9,7 +9,7 @@ typedef struct BTreeNode
 
 BTreeNode *BSTCreateNode(void *value);
 // Function to search for a node with a specific key in the tree
-BTreeNode *BSTSearchNode(BTreeNode *root, void *target, int (*CompareCallback)(const void*, const void*));
+BTreeNode *BSTSearchNode(BTreeNode *root, const void *target, int (*CompareCallback)(const void*, const void*));
 // Function to insert a node with a specific value in the tree
 BTreeNode *BSTInsertNode(BTreeNode *node, void *value, int (*CompareCallback)(const void*, const void*));
 // Function to find the minimum value
@@ -20,7 +20,7 @@ void BSTInOrderTraverse(BTreeNode *root, void (*Func)(void*));
 void BSTPreOrderTraverse(BTreeNode *root, void (*Func)(void*));
 
 // Function to delete a node from the tree
-BTreeNode *BSTDestroyNode(BTreeNode *root, void *key, int (*CompareCallback)(const void*, const void*), void (*DestroyCallback)(void*));
+BTreeNode *BSTDestroyNode(BTreeNode *root, const void *key, int (*CompareCallback)(const void*, const void*), void (*DestroyCallback)(void*));
 void BSTDestroy(BTreeNode **root, void (*DestroyCallback)(void*));
 
 #endif
