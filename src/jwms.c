@@ -15,28 +15,37 @@
 #include "darray.h"
 #include "list.h"
 #include "hashing.h"
+#include "bstree.h"
 //#include "ini.h"
 #include "icons.h"
 #include "desktop_entries.h"
 #include "list.h"
 #include "config.h"
 
+static void InOrderAdd(BTreeNode *entries, List *list)
+{
+    if (entries != NULL)
+    {
+        InOrderAdd(entries->left, list);
+        XDGDesktopEntry *entry = entries->data;
+        ListAdd(list, entry->icon, strlen(entry->icon) + 1);
+        InOrderAdd(entries->right, list);
+    }
+}
 
 int main()
 {
-    DArray *entries = DArrayCreate(100, sizeof(XDGDesktopEntry*));
-    LoadDesktopEntries(entries);
-    EntriesSort(entries);
+    BTreeNode *entries = NULL;
+    LoadDesktopEntries(&entries);
+
+    // Test for node deletion code
+    //EntryRemove(entries, "Okular");
 
     List *icons_input = ListCreate();
-    for (size_t i = 0; i < entries->size; i++)
-    {
-        XDGDesktopEntry *current_entry = entries->data[i];
-        ListAdd(icons_input, current_entry->icon, strlen(current_entry->icon) + 1);
-    }
 
+    InOrderAdd(entries, icons_input);
     //List *icons_output = FindAllIcons(icons_input, 32, 1);
-    ListPrint(icons_input);
+    //ListPrint(icons_input);
     //ListDestroy(icons_output);
     HashMap *icons_output = FindAllIcons(icons_input, 32, 1);
     //HashMapPrint(icons_output);
@@ -61,9 +70,9 @@ int main()
 
     //EntriesPrint(entries);
     // Test
-    XDGDesktopEntry *entry = EntriesSearchExec(entries, "firefox-esr");
-    if (entry != NULL)
-        printf("Search found:\n%s\n%s\n%s\n%s\n", entry->name, entry->category_name, entry->exec, entry->icon);
+    //XDGDesktopEntry *entry = EntriesSearchExec(entries, "firefox-esr");
+    //if (entry != NULL)
+    //    printf("Search found:\n%s\n%s\n%s\n%s\n", entry->name, entry->category_name, entry->exec, entry->icon);
 
     EntriesDestroy(entries);
 

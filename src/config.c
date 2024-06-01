@@ -13,6 +13,7 @@
 #include <confuse.h>
 
 #include "common.h"
+#include "bstree.h"
 #include "darray.h"
 #include "hashing.h"
 #include "list.h"
@@ -587,7 +588,7 @@ static int GenJWMStyles(JWM *jwm)
     return 0;
 }
 
-static void WriteJWMTray(JWM *jwm, DArray *entries, FILE *fp, HashMap *icons)
+static void WriteJWMTray(JWM *jwm, BTreeNode *entries, FILE *fp, HashMap *icons)
 {
     // Get Terminal
     XDGDesktopEntry *terminal = GetCoreProgram(entries, TerminalEmulator, jwm->terminal_name);
@@ -646,7 +647,7 @@ static void WriteJWMTray(JWM *jwm, DArray *entries, FILE *fp, HashMap *icons)
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
 }
 
-static void GenJWMTray(JWM *jwm, DArray *entries, HashMap *icons)
+static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
 {
     char path[512];
     const char *fname = "tray_test";
@@ -715,16 +716,14 @@ static void GenJWMTray(JWM *jwm, DArray *entries, HashMap *icons)
     fclose(fp);
 }
 
-static void WriteJWMRootMenuCategoryList(DArray *entries, HashMap *icons, FILE *fp, XDGMainCategories category, const char *category_name)
+// Recursively traverse the BST in-order and write each entry to the file
+static void WriteMenuCategoriesInOrder(BTreeNode *entries, HashMap *icons, FILE *fp, XDGMainCategories category)
 {
-    char *category_icon = FindIcon(category_icons[category], 32, 1);
-    WRITE_CFG("       <Menu icon=\"%s\" label=\"%s\">\n", category_icon, category_name);
-    free(category_icon);
- 
-    for (size_t i = 0; i < entries->size; i++)
+    if (entries != NULL)
     {
-        XDGDesktopEntry *entry = entries->data[i];
-        
+        WriteMenuCategoriesInOrder(entries->left, icons, fp, category);
+
+        XDGDesktopEntry *entry = entries->data;
         if (entry->category == category)
         {
             const char *icon = HashMapGet(icons, entry->icon);
@@ -732,7 +731,7 @@ static void WriteJWMRootMenuCategoryList(DArray *entries, HashMap *icons, FILE *
             {
                 icon = entry->icon;
             }
-
+            
             if (!entry->terminal_required)
             {
                 WRITE_CFG("            <Program icon=\"%s\" label=\"%s\">%s</Program>\n",
@@ -744,12 +743,22 @@ static void WriteJWMRootMenuCategoryList(DArray *entries, HashMap *icons, FILE *
                             icon, entry->name, entry->exec);
             }
         }
+        WriteMenuCategoriesInOrder(entries->right, icons, fp, category);
     }
+}
+
+static void WriteJWMRootMenuCategoryList(BTreeNode *entries, HashMap *icons, FILE *fp, XDGMainCategories category, const char *category_name)
+{
+    char *category_icon = FindIcon(category_icons[category], 32, 1);
+    WRITE_CFG("       <Menu icon=\"%s\" label=\"%s\">\n", category_icon, category_name);
+    free(category_icon);
+ 
+    WriteMenuCategoriesInOrder(entries, icons, fp, category);
 
     WRITE_CFG("       </Menu>\n");
 }
 
-static void GenJWMRootMenu(JWM *jwm, DArray *entries, HashMap *icons)
+static void GenJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
 {
     char path[512];
     const char *fname = "menu_test";
@@ -780,7 +789,7 @@ static void GenJWMRootMenu(JWM *jwm, DArray *entries, HashMap *icons)
     //WriteJWMRootMenuCategoryList(entries, icons, fp, Video,"Multimedia");
     WriteJWMRootMenuCategoryList(entries, icons, fp, Settings, "Settings");
     WriteJWMRootMenuCategoryList(entries, icons, fp, System, "System");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Utility,"Utility");
+    WriteJWMRootMenuCategoryList(entries, icons, fp, Utility,"Utilities");
 
     // Let's assume were using systemD for now
     WRITE_CFG("        <Program label=\"Restart\">systemctl reboot</Program>\n");
@@ -828,7 +837,7 @@ static int GenJWMRCFile(JWM *jwm)
     return 0;
 }
 
-int WriteJWMConfig(DArray *entries, HashMap *icons)
+int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
 {
     cfg_opt_t opts[] =
     {

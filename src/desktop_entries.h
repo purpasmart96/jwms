@@ -58,6 +58,14 @@ typedef enum
     SingleMainWindow
 } XDGKeyType;
 
+typedef struct
+{
+    bool application;
+    bool icon_exists;
+    bool has_exec;
+    bool no_display;
+} ParsedInfo;
+
 // /usr/share/applications
 typedef struct
 {
@@ -72,12 +80,13 @@ typedef struct
     bool terminal_required;
 } XDGDesktopEntry;
 
-void EntriesPrint(DArray *entries);
-void EntriesDestroy(DArray *entries);
-void EntriesSort(DArray *entries);
-bool EntryExecExists(DArray *entries, const char *key);
-XDGDesktopEntry *EntriesSearchExec(DArray *entries, const char *key);
-XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_category, const char *name);
-int LoadDesktopEntries(DArray *entries);
+void EntriesPrint(BTreeNode *entries);
+void EntryRemove(BTreeNode *entries, char *key);
+void EntriesDestroy(BTreeNode *entries);
+//bool EntryExecExists(HashMap2 *entries, const char *key);
+//XDGDesktopEntry *EntriesSearchExec(HashMap2 *entries, const char *key);
+XDGDesktopEntry *GetCoreProgram(BTreeNode *entries, XDGAdditionalCategories extra_category, char *name);
+int LoadDesktopEntries(BTreeNode **entries);
+
 
 #endif

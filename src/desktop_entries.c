@@ -12,7 +12,7 @@
 #include <string.h>
 
 #include "common.h"
-#include "darray.h"
+#include "bstree.h"
 #include "desktop_entries.h"
 
 static const Pair xdg_keys[] =
@@ -178,16 +178,7 @@ static void EntryPrint(void *ptr)
     printf("CMD                 : %s\n", entry->exec);
     printf("Icon                : %s\n", entry->icon);
     printf("Terminal required   : %d\n", entry->terminal_required);
-}
-
-void EntriesPrint(DArray *entries)
-{
-    DArrayPrint(entries, EntryPrint);
-}
-
-void EntriesDestroy(DArray *entries)
-{
-    DArrayDestroy(entries, DestroyEntry);
+    printf("\n");
 }
 
 static int ExecCmp(const void *a, const void *b)
@@ -197,61 +188,81 @@ static int ExecCmp(const void *a, const void *b)
     return strcmp(entry_a->exec, exec);
 }
 
-void *EntriesBinarySearchExec(DArray *entries, const void *target)
+static int NameCmp(const void *a, const void *b)
 {
-    return DArrayBinarySearch(entries, target, ExecCmp);
+    const XDGDesktopEntry *entry_a = a;
+    const XDGDesktopEntry *entry_b = b;
+    return strcasecmp(entry_a->name, entry_b->name);
 }
 
-static int EntrySortCmp(const void *a, const void *b )
+static int NameCmp2(const void *a, const void *b)
 {
-    const XDGDesktopEntry *entry_a = *(XDGDesktopEntry**)a;
-    const XDGDesktopEntry *entry_b = *(XDGDesktopEntry**)b;
-
-    int val = strcmp(entry_a->exec, entry_b->exec);
-
-    return val;
+    const XDGDesktopEntry *entry_a = a;
+    const char *name = b;
+    return strcasecmp(entry_a->name, name);
 }
 
-void EntriesSort(DArray *entries)
+void EntriesPrint(BTreeNode *entries)
 {
-    DArraySort(entries, EntrySortCmp);
+    BSTInOrderTraverse(entries, EntryPrint);
 }
 
-XDGDesktopEntry *EntriesSearchExec(DArray *entries, const char *key)
+void EntryRemove(BTreeNode *entries, char *key)
 {
-    return EntriesBinarySearchExec(entries, key);
+    BSTDestroyNode(entries, key, NameCmp2, DestroyEntry);
 }
 
-bool EntryExecExists(DArray *entries, const char *key)
+void EntriesDestroy(BTreeNode *entries)
 {
-    return DArrayContains(entries, key, EntrySortCmp, ExecCmp);
+    BSTDestroy(&entries, DestroyEntry);
 }
 
-// TODO: Clean up/refactor needed
-XDGDesktopEntry *GetCoreProgram(DArray *entries, XDGAdditionalCategories extra_category, const char *name)
+static XDGDesktopEntry *InorderTraverseProgramSearch(BTreeNode *node, XDGAdditionalCategories extra_category, const char *base_name, XDGDesktopEntry **fallback)
 {
-    char *base_name = basename(strdup(name));
-    XDGDesktopEntry *fallback = NULL;
-
-    for (size_t i = 0; i < entries->size; i++)
+    if (node == NULL)
     {
-        XDGDesktopEntry *entry = entries->data[i];
-
-        if (entry->extra_category == extra_category)
-        {
-            fallback = entry;
-            if (strstr(entry->exec, base_name) != NULL)
-            {
-                free(base_name);
-                return entry;
-            }
-        }
+        return NULL;
     }
 
-    printf("Couldn't find %s. Using a fallback\n", base_name);
+    XDGDesktopEntry *result = InorderTraverseProgramSearch(node->left, extra_category, base_name, fallback);
+    if (result != NULL)
+    {
+        return result;
+    }
+
+    XDGDesktopEntry *entry = node->data;
+    if (entry->extra_category == extra_category)
+    {
+        if (strstr(entry->exec, base_name) != NULL)
+        {
+            return entry;
+        }
+        *fallback = entry;
+    }
+
+    return InorderTraverseProgramSearch(node->right, extra_category, base_name, fallback);
+}
+
+XDGDesktopEntry *GetCoreProgram(BTreeNode *root, XDGAdditionalCategories extra_category, char *name)
+{
+    char *base_name = basename(strdup(name)); 
+    XDGDesktopEntry *fallback = NULL;
+
+    XDGDesktopEntry *result = InorderTraverseProgramSearch(root, extra_category, base_name, &fallback);
+    
+    if (result == NULL)
+    {
+        if (fallback == NULL)
+        {
+            printf("Couldn't find %s, And no fallback available! Quitting program...\n", base_name);
+            exit(1);
+        }
+
+        printf("Couldn't find %s. Using %s as a fallback\n", base_name, fallback->exec);
+    }
 
     free(base_name);
-    return fallback;
+    return result ? result : fallback;
 }
 
 static void ParseExec(XDGDesktopEntry *entry, const char *exec)
@@ -332,15 +343,15 @@ static void ParseCategories(XDGDesktopEntry *entry, char *categories)
     }
 }
 
-static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, char *value, bool *application, bool *icon_exists, bool *has_exec)
+static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, char *value, ParsedInfo *info)
 {
     switch (key_type)
     {
         case Type:
         {
-             // Ignore links and directories for now...
+            // Ignore links and directories for now...
             if (strcmp(value, "Application") == 0)
-                *application = true;
+                info->application = true;
             break;
         }
 
@@ -353,8 +364,16 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
             entry->name = strdup(value);
             break;
         }
+
         case GenericName:
         break;
+
+        case NoDisplay:
+        {
+            DEBUG_LOG("NoDiplay: %s\n", value);
+            info->no_display = true;
+            break;
+        }
         case Comment:
         break;
         case Icon:
@@ -363,7 +382,7 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
             {
                 printf("Icon already set! %s -> %s\n", entry->icon, value);
             }
-            *icon_exists = true;
+            info->icon_exists = true;
             entry->icon = strdup(value);
             break;
         }
@@ -380,7 +399,7 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         case Exec:
         {
             ParseExec(entry, value);
-            *has_exec = true;
+            info->has_exec = true;
             break;
         }
         case Path:
@@ -426,9 +445,8 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
     size_t len = 0;
     char *line = NULL;
 
-    bool application = false;
-    bool icon_exists = false;
-    bool has_exec = false;
+    ParsedInfo info = { false };
+
     XDGDesktopEntry *entry = CreateEmptyEntry();
     bool is_desktop_entry = false;
     // Read line by line
@@ -468,7 +486,7 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
             {
                 if (strcmp(key, xdg_keys[i].key) == 0)
                 {
-                    ParseDesktopEntry(entry, i, key, value, &application, &icon_exists, &has_exec);
+                    ParseDesktopEntry(entry, i, key, value, &info);
                     break;
                 }
             }
@@ -478,14 +496,14 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
     fclose(fp);
     free(line);
 
-    if (icon_exists && application && has_exec)
+    if (info.icon_exists && info.application && info.has_exec && !info.no_display)
         return entry;
 
     DestroyEntry(entry);
     return NULL;
 }
 
-int LoadDesktopEntries(DArray *entries)
+int LoadDesktopEntries(BTreeNode **entries)
 {
     char buffer[512];
     const char *path = "/usr/share/applications/";
@@ -509,11 +527,11 @@ int LoadDesktopEntries(DArray *entries)
 
             if (entry != NULL)
             {
-                DArrayAdd(entries, entry);
+                *entries = BSTInsertNode(*entries, entry, NameCmp);
             }
             else
             {
-                printf("Failed to parse %s\n", buffer);
+                printf("Failed to parse or ignoring %s\n", buffer);
             }
         }
     }

@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include "bstree.h"
 #include "darray.h"
 #include "hashing.h"
 
