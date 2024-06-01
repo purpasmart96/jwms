@@ -57,6 +57,7 @@ HashMap2 *HashMapCreate2(size_t data_size, void (*DestroyCallback)(void*), void 
 void HashMapResize2(HashMap2 *map);
 void HashMapInsert2(HashMap2 *map, const char *key, void *value);
 void *HashMapGet2(HashMap2 *map, const char *key);
+void HashMapPrint2(HashMap2 *map);
 void HashMapDestroy2(HashMap2 *map);
 
 #endif

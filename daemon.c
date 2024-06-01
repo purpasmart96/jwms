@@ -94,7 +94,7 @@ int main()
         sleep(30);
     }
    
-    syslog (LOG_NOTICE, "jwms daemon terminated.");
+    syslog(LOG_NOTICE, "jwms daemon terminated.");
     closelog();
     
     return EXIT_SUCCESS;

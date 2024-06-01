@@ -25,7 +25,7 @@ static size_t Hash(const char *key)
         hash ^= (unsigned char)key[i];
         hash *= fnv_prime;
     }
-    //printf("%s Hashed to 0x%016X\n", key, hash);
+
     return hash;
 }
 

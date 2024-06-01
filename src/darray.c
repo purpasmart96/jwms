@@ -21,12 +21,10 @@ DArray *DArrayCreate(size_t capacity, size_t data_size)
 
 void DArrayPrint(DArray *darray, void (*PrintCallback)(void*))
 {
-    printf("\n");
     for (size_t i = 0; i < darray->size; i++)
     {
         PrintCallback(darray->data[i]);
     }
-    printf("\n");
 }
 
 void **DArrayResize(DArray *darray, size_t capacity)
