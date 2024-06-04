@@ -1,4 +1,5 @@
 
+#include <pthread.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,13 +42,14 @@ int main()
     // Test for node deletion code
     //EntryRemove(entries, "Okular");
 
-    List *icons_input = ListCreate();
+    //List *icons_input = ListCreate();
+    //InOrderAdd(entries, icons_input);
 
-    InOrderAdd(entries, icons_input);
     //List *icons_output = FindAllIcons(icons_input, 32, 1);
     //ListPrint(icons_input);
     //ListDestroy(icons_output);
-    HashMap *icons_output = FindAllIcons(icons_input, 32, 1);
+    //HashMap *icons_output = FindAllIcons(icons_input, 32, 1);
+    HashMap *icons_output = FindAllIcons2(entries, 32, 1);
     //HashMapPrint(icons_output);
 
     int result = WriteJWMConfig(entries, icons_output);
@@ -66,7 +68,7 @@ int main()
     //}
 
     HashMapDestroy(icons_output);
-    ListDestroy(icons_input);
+    //ListDestroy(icons_input);
 
     //EntriesPrint(entries);
     // Test

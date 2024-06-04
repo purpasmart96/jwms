@@ -9,15 +9,36 @@ typedef enum
     Fallback
 } IconType;
 
+typedef enum
+{
+    ActionsContext,
+    DevicesContext,
+    FileSystemsContext,
+    MimeTypesContext
+} IconContext;
+
+/*
+typedef enum 
+{
+    Size,
+    Scale,
+    Context,
+    Type,
+    MaxSize,
+    MinSize,
+    Threshold,
+} IconDirKeyType;
+*/
+
 typedef struct
 {
     char *path;
-    char *context;
-    IconType type;
     int size;
+    int scale;
+    IconContext context;
+    IconType type;
     int min_size;
     int max_size;
-    int scale;
     int threshold;
 } XDGIcon;
 
@@ -41,14 +62,16 @@ typedef struct
     //char **gtk_caches;
 } IconTheme;
 
-XDGIcon *IconCreate(const char *path, IconType type, int size, int min_size, int max_size, int scale, int threshold);
+XDGIcon *IconCreate(const char *path, IconType type, IconContext context, int size, int min_size, int max_size, int scale, int threshold);
 
 char *GetCurrentGTKIconThemeName();
 //char *LookupIcon(char *icon_name, int size, int scale, char *theme);
+char *LookupIcon2(IconTheme *theme, const char *icon_name, int size, int scale);
 char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale);
 char *FindIcon(const char *icon, int size, int scale);
 //List *FindAllIcons(List *icons, int size, int scale);
 HashMap *FindAllIcons(List *icons, int size, int scale);
+HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale);
 //void TestPrintSections(HashMap *map);
 //XDGIcon *LookupIconHelper(XDGIcon *icon_dir_info, char *icon_name, char *theme);
 
