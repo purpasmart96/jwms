@@ -169,7 +169,7 @@ static void DestroyEntry(void *entry)
     free(entry);
 }
 
-static void EntryPrint(void *ptr)
+static void EntryPrint(void *ptr, void *args)
 {
     XDGDesktopEntry *entry = ptr;
     printf("Program             : %s\n", entry->name);
@@ -204,7 +204,7 @@ static int NameCmp2(const void *a, const void *b)
 
 void EntriesPrint(BTreeNode *entries)
 {
-    BSTInOrderTraverse(entries, EntryPrint);
+    BSTInOrderTraverse(entries, EntryPrint, NULL);
 }
 
 void EntryRemove(BTreeNode *entries, const char *key)

@@ -63,38 +63,38 @@ BTreeNode *BSTInsertNode(BTreeNode *node, void *value, int (*CompareCallback)(co
 }
 
 // Function to perform post-order traversal
-void BSTPostOrderTraverse(BTreeNode *root, void (*Func)(void*))
+void BSTPostOrderTraverse(BTreeNode *root, void (*Func)(void*, void*), void *args)
 {
     if (root != NULL)
     {
-        BSTPostOrderTraverse(root->left, Func);
-        BSTPostOrderTraverse(root->right, Func);
+        BSTPostOrderTraverse(root->left, Func, args);
+        BSTPostOrderTraverse(root->right, Func, args);
         // User defined function, can be whatever
-        Func(root->data);
+        Func(root->data, args);
     }
 }
  
 // Function to perform in-order traversal
-void BSTInOrderTraverse(BTreeNode *root, void (*Func)(void*))
+void BSTInOrderTraverse(BTreeNode *root, void (*Func)(void*, void*), void *args)
 {
     if (root != NULL)
     {
-        BSTPostOrderTraverse(root->left, Func);
+        BSTPostOrderTraverse(root->left, Func, args);
         // User defined function, can be whatever
-        Func(root->data);
-        BSTPostOrderTraverse(root->right, Func);
+        Func(root->data, args);
+        BSTPostOrderTraverse(root->right, Func, args);
     }
 }
  
 // Function to perform pre-order traversal
-void BSTPreOrderTraverse(BTreeNode *root, void (*Func)(void*))
+void BSTPreOrderTraverse(BTreeNode *root, void (*Func)(void*, void*), void *args)
 {
     if (root != NULL)
     {
         // User defined function, can be whatever
-        Func(root->data);
-        BSTPostOrderTraverse(root->left, Func);
-        BSTPostOrderTraverse(root->right, Func);
+        Func(root->data, args);
+        BSTPostOrderTraverse(root->left, Func, args);
+        BSTPostOrderTraverse(root->right, Func, args);
     }
 }
 

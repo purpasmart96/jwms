@@ -15,9 +15,9 @@ BTreeNode *BSTInsertNode(BTreeNode *node, void *value, int (*CompareCallback)(co
 // Function to find the minimum value
 BTreeNode *BSTFindMin(BTreeNode *root);
 
-void BSTPostOrderTraverse(BTreeNode *root, void (*Func)(void*));
-void BSTInOrderTraverse(BTreeNode *root, void (*Func)(void*));
-void BSTPreOrderTraverse(BTreeNode *root, void (*Func)(void*));
+void BSTPostOrderTraverse(BTreeNode *root, void (*Func)(void*, void*), void *args);
+void BSTInOrderTraverse(BTreeNode *root, void (*Func)(void*, void*), void *args);
+void BSTPreOrderTraverse(BTreeNode *root, void (*Func)(void*, void*), void *args);
 
 // Function to delete a node from the tree
 BTreeNode *BSTDestroyNode(BTreeNode *root, const void *key, int (*CompareCallback)(const void*, const void*), void (*DestroyCallback)(void*));
