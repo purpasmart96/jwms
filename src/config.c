@@ -105,25 +105,6 @@ static float GetValidOpacity(float opacity)
     return CLAMP(opacity, 0.0, 1.0);
 }
 
-typedef struct
-{
-    char *name;
-    char *alignment;
-    int size;
-} FontInfo;
-
-static FontInfo GetFontInfo(JWM *jwm, Styles type)
-{
-    FontInfo font =
-    {
-        .name = jwm->tray_use_global_font ? jwm->global_font : jwm->tray_font,
-        .alignment = jwm->tray_use_global_font ? jwm->global_font_alignment : jwm->tray_font_alignment,
-        .size = jwm->tray_use_global_font ? jwm->global_font_size : jwm->tray_font_size
-    };
-
-    return font;
-}
-
 static int ReadConfigFile(cfg_t *cfg)
 {
     const char *system_cfg = "/etc/jwms/jwms.conf";
@@ -301,11 +282,11 @@ static int GenJWMPreferences(JWM *jwm)
     // Start of the prefs xml file
     WRITE_CFG("<?xml version=\"1.0\"?>\n");
     WRITE_CFG("<JWM>\n");
-    WRITE_CFG("   <Desktops width=\"2\" height=\"1\">\n");
-    WRITE_CFG("       <Background type=\"solid\">#111111</Background>\n");
+    WRITE_CFG("   <Desktops width=\"%d\" height=\"%d\">\n", 2, 1);
+    WRITE_CFG("       <Background type=\"%s\">%s</Background>\n", "solid", "555555");
     WRITE_CFG("   </Desktops>\n");
-    WRITE_CFG("   <DoubleClickSpeed>400</DoubleClickSpeed>\n");
-    WRITE_CFG("   <DoubleClickDelta>2</DoubleClickDelta>\n");
+    WRITE_CFG("   <DoubleClickSpeed>%d</DoubleClickSpeed>\n", 400);
+    WRITE_CFG("   <DoubleClickDelta>%d</DoubleClickDelta>\n", 2);
     WRITE_CFG("   <FocusModel>%s</FocusModel>\n", jwm->window_focus_model);
     WRITE_CFG("   <SnapMode distance=\"%d\">%s</SnapMode>\n", jwm->window_snap_distance, jwm->window_snap_mode);
     WRITE_CFG("   <MoveMode>%s</MoveMode>\n", jwm->window_move_mode);
@@ -316,9 +297,33 @@ static int GenJWMPreferences(JWM *jwm)
     return 0;
 }
 
-static int GenJWMBinds(JWM *jwm)
+typedef struct
+{
+    char *in;
+    char *out;
+} ModKeyMap;
+
+static const ModKeyMap key_mods[] =
+{
+    {"Alt", "A"},
+    {"Ctrl", "C"},
+    {"Shift", "S"}
+};
+
+static char *GetJWMKeyMod(char *in)
+{
+    for (size_t i = 0; i < ARRAY_SIZE(key_mods); i++)
+    {
+        if (strcmp(key_mods[i].in, in) == 0)
+            return key_mods[i].out;
+    }
+    return NULL;
+}
+
+static int GenJWMBinds(JWM *jwm, cfg_t *cfg)
 {
     char path[512];
+    char keymods[64];
     const char *fname = "binds_test";
 
     strlcpy(path, jwm->autogen_config_path, sizeof(path));
@@ -337,31 +342,47 @@ static int GenJWMBinds(JWM *jwm)
     // Start of the binds xml file
     WRITE_CFG("<?xml version=\"1.0\"?>\n");
     WRITE_CFG("<JWM>\n");
-    WRITE_CFG("    <Key key=\"Up\">up</Key>\n");
-    WRITE_CFG("    <Key key=\"Down\">down</Key>\n");
-    WRITE_CFG("    <Key key=\"Right\">right</Key>\n");
-    WRITE_CFG("    <Key key=\"Left\">left</Key>\n");
-    WRITE_CFG("    <Key key=\"h\">up</Key>\n");
-    WRITE_CFG("    <Key key=\"j\">down</Key>\n");
-    WRITE_CFG("    <Key key=\"k\">right</Key>\n");
-    WRITE_CFG("    <Key key=\"l\">left</Key>\n");
-    WRITE_CFG("    <Key key=\"Return\">select</Key>\n");
-    WRITE_CFG("    <Key key=\"Escape\">escape</Key>\n");
-    WRITE_CFG("    <Key mask=\"A\" key=\"Tab\">nextstacked</Key>\n");
-    WRITE_CFG("    <Key mask=\"A\" key=\"F4\">close</Key>\n");
-    WRITE_CFG("    <Key mask=\"A\" key=\"#\">desktop#</Key>\n");
-    WRITE_CFG("    <Key mask=\"A\" key=\"F1\">root:1</Key>\n");
-    WRITE_CFG("    <Key mask=\"A\" key=\"F2\">window</Key>\n");
-    WRITE_CFG("    <Key mask=\"A\" key=\"F10\">maximize</Key>\n");
-    WRITE_CFG("    <Key mask=\"A\" key=\"Right\">rdesktop</Key>\n");
-    WRITE_CFG("    <Key mask=\"A\" key=\"Left\">ldesktop</Key>\n");
-    WRITE_CFG("    <Key mask=\"A\" key=\"Up\">udesktop</Key>\n");
-    WRITE_CFG("    <Key mask=\"A\" key=\"Down\">ddesktop</Key>\n");
+
+    int n = cfg_size(cfg, "keybind");
+	printf("\nFound %d keybinds:\n", n);
+
+	for (int i = 0; i < n; i++)
+    {
+		cfg_t *keybind = cfg_getnsec(cfg, "keybind", i);
+
+        int num_mods = cfg_size(keybind, "mods");
+        printf("keybind %u: %s\n", i + 1, cfg_title(keybind));
+        char *cmd = cfg_getstr(keybind, "command");
+        printf("command: %s\n", cmd);
+
+        for (int j = 0; j < num_mods; j++)
+        {
+            char *in_keymod = cfg_getnstr(keybind,"mods", j);
+            printf("keymod %d: %s\n", j, in_keymod);
+            char *out_keymod = GetJWMKeyMod(in_keymod);
+            if (out_keymod == NULL)
+                return -1;
+            strlcat(keymods, out_keymod, sizeof(keymods));
+        }
+
+        char *key = cfg_getstr(keybind, "key");
+        printf("key: %s\n", key);
+        printf("\n");
+
+        if (!num_mods)
+        {
+            WRITE_CFG("    <Key key=\"%s\">%s</Key>\n", key, cmd);
+        }
+        else
+        {
+            WRITE_CFG("    <Key mask=\"%s\" key=\"%s\">%s</Key>\n", keymods, key, cmd);
+        }
+        keymods[0] = '\0';
+	}
 
     //WRITE_CFG("    <Mouse context=\"root\" button=\"4\">ldesktop</Mouse>\n");
     //WRITE_CFG("    <Mouse context=\"root\" button=\"5\">rdesktop</Mouse>\n");
 
-   
     WRITE_CFG("</JWM>\n");
 
     fclose(fp);
@@ -376,32 +397,6 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
     {
         case WindowStyle:
         {
-            /*
-            char *fg_color_inactive = jwm->window_fg_color_inactive;
-            char *fg_color_active = jwm->window_fg_color_active;
-            char *bg_color_inactive = jwm->window_bg_color_inactive;
-            char *bg_color_active = jwm->window_bg_color_active;
-
-            char *font = jwm->menu_font;
-            char *font_alignment = jwm->menu_font_alignment;
-            int font_size = jwm->menu_font_size;
-
-            if (jwm->window_use_global_colors)
-            {
-                fg_color_inactive = jwm->global_fg_color_inactive;
-                fg_color_active = jwm->global_fg_color_active;
-                bg_color_inactive = jwm->global_bg_color_inactive;
-                bg_color_active = jwm->global_bg_color_active;
-            }
-
-            if (jwm->window_use_global_font)
-            {
-                font = jwm->global_font;
-                font_alignment = jwm->global_font_alignment;
-                font_size = jwm->global_font_size;
-            }
-            */
-
             //WRITE_CFG("    <%s decorations=\"%s\">\n", style_types[style].key, "flat");
             WRITE_CFG(" decorations=\"%s\">\n", GetDecorationsStyle(window));
             WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(window), GetFontName(window), GetFontSize(window));
@@ -802,9 +797,11 @@ static void GenJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
     WriteJWMRootMenuCategoryList(entries, icons, fp, System, "System");
     WriteJWMRootMenuCategoryList(entries, icons, fp, Utility,"Utilities");
 
-    // Let's assume were using systemD for now
-    WRITE_CFG("        <Program label=\"Restart\">systemctl reboot</Program>\n");
-    WRITE_CFG("        <Program label=\"Shutdown\">systemctl poweroff</Program>\n");
+    WRITE_CFG("        <Restart label=\"Refresh\" icon=\"view-refresh\"/>\n");
+    WRITE_CFG("        <Exit label=\"Logout\" icon=\"system-log-out\"/>\n");
+    // Let's assume were using systemd for now
+    WRITE_CFG("        <Program icon=\"system-reboot\" label=\"Restart\">systemctl reboot</Program>\n");
+    WRITE_CFG("        <Program icon=\"system-shutdown\" label=\"Shutdown\">systemctl poweroff</Program>\n");
     WRITE_CFG("    </RootMenu>\n");
     WRITE_CFG("</JWM>");
 
@@ -850,6 +847,14 @@ static int GenJWMRCFile(JWM *jwm)
 
 int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
 {
+	cfg_opt_t keybind_opts[] =
+    {
+        CFG_STR_LIST("mods", "{Ctrl, Alt}", CFGF_NONE),
+        CFG_STR("key", "T", CFGF_NONE),
+        CFG_STR("command", "exec:xterm", CFGF_NONE),
+		CFG_END()
+	};
+
     cfg_opt_t opts[] =
     {
         CFG_STR("global_browser", "firefox", CFGF_NONE),
@@ -929,11 +934,14 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
         CFG_STR("tray_font", "Sans", CFGF_NONE),
         CFG_STR("tray_font_alignment", "center", CFGF_NONE),
         CFG_INT("tray_font_size", 10, CFGF_NONE),
+
+        CFG_SEC("keybind", keybind_opts, CFGF_MULTI | CFGF_TITLE),
+        //CFG_SEC("keybind", keybind_opts, CFGF_NONE),
         CFG_END()
     };
 
     cfg_t *cfg = cfg_init(opts, CFGF_NONE);
-
+    
     if (ReadConfigFile(cfg) != 0)
         return -1;
 
@@ -1051,7 +1059,7 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
 
     GenJWMIcons(jwm);
 
-    if (GenJWMBinds(jwm) != 0)
+    if (GenJWMBinds(jwm, cfg) != 0)
         goto failure;
 
     if (GenJWMRCFile(jwm) != 0)

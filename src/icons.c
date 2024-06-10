@@ -585,7 +585,6 @@ success:
     return filename;
 }
 
-
 HashMap *FindAllIcons(List *icons, int size, int scale)
 {
     char *theme = GetCurrentGTKIconThemeName();
@@ -637,6 +636,7 @@ static void SearchAndStoreIcon(void *entry_ptr, void *args_ptr)
     XDGDesktopEntry *entry = entry_ptr;
     Args *args = args_ptr;
     const char *icon = entry->icon;
+    
     char *filename = LookupIcon(args->icon_theme, icon, args->size, args->scale);
     if (filename != NULL)
     {
@@ -661,7 +661,8 @@ HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
     IconTheme *default_theme = LoadIconTheme("hicolor");
     HashMap *valid_icons = HashMapCreate();
 
-    Args args = {
+    Args args =
+    {
         .icon_theme = icon_theme,
         .default_theme = default_theme,
         .valid_icons = valid_icons,
