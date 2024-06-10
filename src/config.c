@@ -936,12 +936,11 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
         CFG_INT("tray_font_size", 10, CFGF_NONE),
 
         CFG_SEC("keybind", keybind_opts, CFGF_MULTI | CFGF_TITLE),
-        //CFG_SEC("keybind", keybind_opts, CFGF_NONE),
         CFG_END()
     };
 
     cfg_t *cfg = cfg_init(opts, CFGF_NONE);
-    
+
     if (ReadConfigFile(cfg) != 0)
         return -1;
 
