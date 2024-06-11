@@ -360,14 +360,18 @@ static int GenJWMBinds(JWM *jwm, cfg_t *cfg)
             char *in_keymod = cfg_getnstr(keybind,"mods", j);
             printf("keymod %d: %s\n", j, in_keymod);
             char *out_keymod = GetJWMKeyMod(in_keymod);
+
             if (out_keymod == NULL)
+            {
+                fclose(fp);
                 return -1;
+            }
+
             strlcat(keymods, out_keymod, sizeof(keymods));
         }
 
         char *key = cfg_getstr(keybind, "key");
-        printf("key: %s\n", key);
-        printf("\n");
+        printf("key: %s\n\n", key);
 
         if (!num_mods)
         {
@@ -430,10 +434,9 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
         case ClockStyle:
         {
             WRITE_CFG(">\n");
-            //WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(clock), GetFontName(clock), GetFontSize(clock));
-            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", jwm->global_font_alignment, jwm->global_font, jwm->global_font_size);
-            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
+            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(clock), GetFontName(clock), GetFontSize(clock));
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", GetFGColor(clock, inactive));
+            WRITE_CFG("        <Background>%s</Background>\n", GetBGColor(clock, inactive));
             break;
         }
         case TrayStyle:
@@ -490,14 +493,14 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
         case PagerStyle:
         {
             WRITE_CFG(">\n");
-            WRITE_CFG("        <Outline>%s</Outline>\n", jwm->global_outline_color);
-            WRITE_CFG("        <Foreground>%s</Foreground>\n", jwm->global_fg_color_inactive);
-            WRITE_CFG("        <Background>%s</Background>\n", jwm->global_bg_color_inactive);
-            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", jwm->global_font_alignment, jwm->global_font, jwm->global_font_size);
-            WRITE_CFG("        <Text>#FFFFFF</Text>\n");
+            WRITE_CFG("        <Outline>%s</Outline>\n", GetOutlineColor(pager, inactive));
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", GetFGColor(pager, inactive));
+            WRITE_CFG("        <Background>%s</Background>\n", GetBGColor(pager, inactive));
+            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(pager), GetFontName(pager), GetFontSize(pager));
+            WRITE_CFG("        <Text>%s</Text>\n", "#FFFFFF");
             WRITE_CFG("        <Active>\n");
-            WRITE_CFG("            <Foreground>%s</Foreground>\n", jwm->global_fg_color_active);
-            WRITE_CFG("            <Background>%s</Background>\n", jwm->global_bg_color_active);
+            WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(pager, active));
+            WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(pager, active));
             WRITE_CFG("        </Active>\n");
             break;
         }
@@ -703,18 +706,18 @@ static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
     }
 
     char *show_desktop_icon = FindIcon("desktop", 32, 1);
-    WRITE_CFG("       <Spacer width=\"4\"/>\n");
+    WRITE_CFG("       <Spacer width=\"%d\"/>\n", 4);
     WriteJWMTray(jwm, entries, fp, icons);
-    WRITE_CFG("       <TaskList maxwidth=\"200\"/>\n");
+    WRITE_CFG("       <TaskList maxwidth=\"%d\"/>\n", 200);
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
     WRITE_CFG("       <TrayButton popup=\"Show Desktop\" icon=\"%s\">showdesktop</TrayButton>\n", show_desktop_icon);
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
-    WRITE_CFG("       <Pager labeled=\"true\"/>\n");
+    WRITE_CFG("       <Pager labeled=\"%s\"/>\n", "true");
     WRITE_CFG("       <Spacer width=\"%d\"/>\n",jwm->tray_icon_spacing);
     WRITE_CFG("       <Dock/>\n");
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
     WRITE_CFG("       <Clock format=\"%%l:%%M %%p\"><Button mask=\"123\">exec:xclock</Button></Clock>\n");
-    WRITE_CFG("       <Spacer width=\"4\"/>\n");
+    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
     WRITE_CFG("   </Tray>\n");
     WRITE_CFG("</JWM>");
 
@@ -895,6 +898,27 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
         CFG_STR("window_move_mode", "opaque", CFGF_NONE),
         CFG_STR("window_resize_mode", "outline", CFGF_NONE),
 
+        CFG_BOOL("clock_use_global_colors", true, CFGF_NONE),
+        CFG_BOOL("clock_use_global_font", true, CFGF_NONE),
+        CFG_STR("clock_bg_color", "#111111", CFGF_NONE),
+        CFG_STR("clock_fg_color", "#DDDDDD", CFGF_NONE),
+        CFG_STR("clock_font", "Sans", CFGF_NONE),
+        CFG_STR("clock_font_alignment", "center", CFGF_NONE),
+        CFG_INT("clock_font_size", 11, CFGF_NONE),
+
+        CFG_BOOL("pager_use_global_colors", true, CFGF_NONE),
+        CFG_BOOL("pager_use_global_font", true, CFGF_NONE),
+        CFG_BOOL("pager_outline_enabled", true, CFGF_NONE),
+        CFG_STR("pager_bg_color_active", "#222222", CFGF_NONE),
+        CFG_STR("pager_bg_color_inactive", "#111111", CFGF_NONE),
+        CFG_STR("pager_fg_color_active", "#DDDDDD", CFGF_NONE),
+        CFG_STR("pager_fg_color_inactive", "#CCCCCC", CFGF_NONE),
+        CFG_STR("pager_outline_color", "#FFFFFF", CFGF_NONE),
+        CFG_STR("pager_text_color", "#FFFFFF", CFGF_NONE),
+        CFG_STR("pager_font", "Sans", CFGF_NONE),
+        CFG_STR("pager_font_alignment", "center", CFGF_NONE),
+        CFG_INT("pager_font_size", 10, CFGF_NONE),
+
         CFG_BOOL("menu_use_global_decorations_style", true, CFGF_NONE),
         CFG_BOOL("menu_use_global_colors", true, CFGF_NONE),
         CFG_BOOL("menu_use_global_font", true, CFGF_NONE),
@@ -995,8 +1019,30 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
     jwm->window_move_mode = cfg_getstr(cfg, "window_move_mode");
     jwm->window_resize_mode = cfg_getstr(cfg, "window_resize_mode");
 
+    jwm->clock_use_global_colors = cfg_getbool(cfg, "clock_use_global_colors");
+    jwm->clock_use_global_font = cfg_getbool(cfg, "clock_use_global_font");
+    jwm->clock_bg_color_inactive = cfg_getstr(cfg, "clock_bg_color");
+    jwm->clock_fg_color_inactive = cfg_getstr(cfg, "clock_fg_color");
+    jwm->clock_font = cfg_getstr(cfg, "clock_font");
+    jwm->clock_font_alignment = cfg_getstr(cfg, "clock_font_alignment");
+    jwm->clock_font_size = cfg_getint(cfg, "clock_font_size");
+
+    jwm->pager_use_global_colors = cfg_getbool(cfg, "pager_use_global_colors");
+    jwm->pager_use_global_font = cfg_getbool(cfg, "pager_use_global_font");
+    jwm->pager_outline_enabled = cfg_getbool(cfg, "pager_outline_enabled");
+    jwm->pager_bg_color_active = cfg_getstr(cfg, "pager_bg_color_active");
+    jwm->pager_bg_color_inactive = cfg_getstr(cfg, "pager_bg_color_inactive");
+    jwm->pager_fg_color_active = cfg_getstr(cfg, "pager_fg_color_active");
+    jwm->pager_fg_color_inactive = cfg_getstr(cfg, "pager_fg_color_inactive");
+    jwm->pager_outline_color_inactive = cfg_getstr(cfg, "pager_outline_color");
+    jwm->pager_text_color = cfg_getstr(cfg, "pager_text_color");
+    jwm->pager_font = cfg_getstr(cfg, "pager_font");
+    jwm->pager_font_alignment = cfg_getstr(cfg, "pager_font_alignment");
+    jwm->pager_font_size = cfg_getint(cfg, "pager_font_size");
+
     jwm->menu_use_global_decorations_style = cfg_getbool(cfg, "menu_use_global_decorations_style");
     jwm->menu_use_global_colors = cfg_getbool(cfg, "menu_use_global_colors");
+    jwm->menu_use_global_font = cfg_getbool(cfg, "menu_use_global_font");
     jwm->menu_outline_enabled = cfg_getbool(cfg, "menu_outline_enabled");
     jwm->menu_decorations_style = cfg_getstr(cfg, "menu_decorations_style");
     jwm->menu_bg_color_active = cfg_getstr(cfg, "menu_bg_color_active");

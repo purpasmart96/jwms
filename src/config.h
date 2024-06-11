@@ -82,6 +82,27 @@ typedef struct
     char *window_move_mode;
     char *window_resize_mode;
 
+    bool clock_use_global_colors;
+    bool clock_use_global_font;
+    char *clock_bg_color_inactive;
+    char *clock_fg_color_inactive;
+    char *clock_font;
+    char *clock_font_alignment;
+    int clock_font_size;
+
+    bool pager_use_global_colors;
+    bool pager_use_global_font;
+    bool pager_outline_enabled;
+    char *pager_bg_color_active;
+    char *pager_bg_color_inactive;
+    char *pager_fg_color_active;
+    char *pager_fg_color_inactive;
+    char *pager_outline_color_inactive;
+    char *pager_text_color;
+    char *pager_font;
+    char *pager_font_alignment;
+    int pager_font_size;
+
     bool menu_use_global_decorations_style;
     bool menu_use_global_colors;
     bool menu_use_global_font;
