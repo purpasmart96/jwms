@@ -947,7 +947,7 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
 {
 	cfg_opt_t keybind_opts[] =
     {
-        CFG_STR_LIST("mods", "{Ctrl, Alt}", CFGF_NONE),
+        CFG_STR_LIST("mods", NULL, CFGF_NONE),
         CFG_STR("key", "T", CFGF_NONE),
         CFG_STR("command", "exec:xterm", CFGF_NONE),
 		CFG_END()
