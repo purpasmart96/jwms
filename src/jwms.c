@@ -23,17 +23,6 @@
 #include "list.h"
 #include "config.h"
 
-static void InOrderAdd(BTreeNode *entries, List *list)
-{
-    if (entries != NULL)
-    {
-        InOrderAdd(entries->left, list);
-        XDGDesktopEntry *entry = entries->data;
-        ListAdd(list, entry->icon, strlen(entry->icon) + 1);
-        InOrderAdd(entries->right, list);
-    }
-}
-
 int main()
 {
     BTreeNode *entries = NULL;
@@ -42,13 +31,6 @@ int main()
     // Test for node deletion code
     //EntryRemove(entries, "Okular");
 
-    //List *icons_input = ListCreate();
-    //InOrderAdd(entries, icons_input);
-
-    //List *icons_output = FindAllIcons(icons_input, 32, 1);
-    //ListPrint(icons_input);
-    //ListDestroy(icons_output);
-    //HashMap *icons_output = FindAllIcons(icons_input, 32, 1);
     HashMap *icons_output = FindAllIcons2(entries, 32, 1);
     //HashMapPrint(icons_output);
 
@@ -68,7 +50,6 @@ int main()
     //}
 
     HashMapDestroy(icons_output);
-    //ListDestroy(icons_input);
 
     //EntriesPrint(entries);
     // Test
