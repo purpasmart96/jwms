@@ -297,6 +297,101 @@ static int GenJWMPreferences(JWM *jwm)
     return 0;
 }
 
+static int GenJWMAutoStart(JWM *jwm, cfg_t *cfg)
+{
+    char path[512];
+    char keymods[64];
+    const char *fname = "autostart";
+
+    strlcpy(path, jwm->autogen_config_path, sizeof(path));
+    strlcat(path, fname, sizeof(path));
+
+    FILE *fp = fopen(path, "w");
+
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error opening '%s': %s\n", path, strerror(errno));
+        return -1;
+    }
+
+    printf("Writing to %s\n", path);
+
+    // Start of the bash autostart script
+    WRITE_CFG("#!/bin/bash\n\n");
+
+    int n = cfg_size(cfg, "autostart");
+	printf("\nFound %d autostart tasks:\n", n);
+
+	for (int i = 0; i < n; i++)
+    {
+		cfg_t *autostart = cfg_getnsec(cfg, "autostart", i);
+
+        const char *title = cfg_title(autostart);
+        printf("autostart %u: %s\n", i + 1, title);
+
+        int sleep_time = cfg_getint(autostart, "sleep_time");
+        bool fork = cfg_getbool(autostart, "fork_needed");
+        bool kill = cfg_getbool(autostart, "restart_kill");
+        char *program = cfg_getstr(autostart, "program");
+        char *args = cfg_getstr(autostart, "args");
+
+        if (program == NULL)
+        {
+            printf("Program name was NULL for autostart %s !\n", title);
+            fclose(fp);
+            return -1;
+        }
+
+        printf("program: %s\n", program);
+        if (kill)
+            WRITE_CFG("pkill %s\n", program);
+
+        if (args != NULL)
+        {
+            if (fork && sleep_time > 0)
+            {
+                WRITE_CFG("sleep %d && %s %s &\n", sleep_time, program, args);
+            }
+            else if (sleep_time > 0)
+            {
+                WRITE_CFG("sleep %d && %s %s\n", sleep_time, program, args);
+            }
+            else if (fork)
+            {
+                WRITE_CFG("%s %s &\n", program, args);
+            }
+            else
+            {
+                WRITE_CFG("%s %s\n", program, args);
+            }
+        }
+        else
+        {
+            if (fork && sleep_time > 0)
+            {
+                WRITE_CFG("sleep %d && %s &\n", sleep_time, program);
+            }
+            else if (sleep_time > 0)
+            {
+                WRITE_CFG("sleep %d && %s\n", sleep_time, program);
+            }
+            else if (fork)
+            {
+                WRITE_CFG("%s &\n", program);
+            }
+            else
+            {
+                WRITE_CFG("%s\n", program);
+            }
+        }
+	}
+
+    chmod(path, 0755);
+
+    fclose(fp);
+    return 0;
+}
+
 typedef struct
 {
     char *in;
@@ -858,6 +953,16 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
 		CFG_END()
 	};
 
+	cfg_opt_t autostart_opts[] =
+    {
+        CFG_INT("sleep_time", 0, CFGF_NONE),
+        CFG_BOOL("fork_needed", false, CFGF_NONE),
+        CFG_BOOL("restart_kill", false, CFGF_NONE),
+        CFG_STR("program", NULL, CFGF_NONE),
+        CFG_STR("args", NULL, CFGF_NONE),
+		CFG_END()
+	};
+
     cfg_opt_t opts[] =
     {
         CFG_STR("global_browser", "firefox", CFGF_NONE),
@@ -960,6 +1065,7 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
         CFG_INT("tray_font_size", 10, CFGF_NONE),
 
         CFG_SEC("keybind", keybind_opts, CFGF_MULTI | CFGF_TITLE),
+        CFG_SEC("autostart", autostart_opts, CFGF_MULTI | CFGF_TITLE),
         CFG_END()
     };
 
@@ -1105,6 +1211,9 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
     GenJWMIcons(jwm);
 
     if (GenJWMBinds(jwm, cfg) != 0)
+        goto failure;
+
+    if (GenJWMAutoStart(jwm, cfg) != 0)
         goto failure;
 
     if (GenJWMRCFile(jwm) != 0)
