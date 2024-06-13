@@ -446,8 +446,16 @@ static int GenJWMBinds(JWM *jwm, cfg_t *cfg)
 		cfg_t *keybind = cfg_getnsec(cfg, "keybind", i);
 
         int num_mods = cfg_size(keybind, "mods");
-        printf("keybind %u: %s\n", i + 1, cfg_title(keybind));
-        char *cmd = cfg_getstr(keybind, "command");
+        const char *title = cfg_title(keybind);
+        printf("keybind %u: %s\n", i + 1, title);
+        const char *cmd = cfg_getstr(keybind, "command");
+
+        if (cmd == NULL)
+        {
+            printf("Command for keybind %s was NULL! Skipping keybind...\n", title);
+            continue;
+        }
+
         printf("command: %s\n", cmd);
 
         for (int j = 0; j < num_mods; j++)
@@ -478,9 +486,6 @@ static int GenJWMBinds(JWM *jwm, cfg_t *cfg)
         }
         keymods[0] = '\0';
 	}
-
-    //WRITE_CFG("    <Mouse context=\"root\" button=\"4\">ldesktop</Mouse>\n");
-    //WRITE_CFG("    <Mouse context=\"root\" button=\"5\">rdesktop</Mouse>\n");
 
     WRITE_CFG("</JWM>\n");
 
@@ -786,7 +791,7 @@ static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
         const char *icon_path = (resolved_icon != NULL) ? resolved_icon : jwm->tray_menu_icon;
 
         // Write configuration with the icon
-        WRITE_CFG("       <TrayButton label=\"%s\" icon=\"%s\">root:1</TrayButton>\n", jwm->tray_menu_text, icon_path);
+        WRITE_CFG("       <TrayButton icon=\"%s\">root:1</TrayButton>\n", icon_path);
 
         // Free the resolved icon if it was dynamically allocated
         if (resolved_icon != NULL)
@@ -807,7 +812,7 @@ static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
     WRITE_CFG("       <TrayButton popup=\"Show Desktop\" icon=\"%s\">showdesktop</TrayButton>\n", show_desktop_icon);
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
-    WRITE_CFG("       <Pager labeled=\"%s\"/>\n", "true");
+    WRITE_CFG("       <Pager labeled=\"%s\"/>\n", jwm->pager_labled ? "true" : "false");
     WRITE_CFG("       <Spacer width=\"%d\"/>\n",jwm->tray_icon_spacing);
     WRITE_CFG("       <Dock/>\n");
     WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
@@ -885,12 +890,13 @@ static void GenJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
     WRITE_CFG("<JWM>\n");
     WRITE_CFG("    <RootMenu height=\"%d\" onroot=\"12\">\n", jwm->root_menu_height);
 
+    WriteJWMRootMenuCategoryList(entries, icons, fp, Development, "Development");
+    //WriteJWMRootMenuCategoryList(entries, icons, fp, Education, "Education");
+    WriteJWMRootMenuCategoryList(entries, icons, fp, Game,"Games");
+    WriteJWMRootMenuCategoryList(entries, icons, fp, Graphics,"Graphics");
     WriteJWMRootMenuCategoryList(entries, icons, fp, Network, "Internet");
     WriteJWMRootMenuCategoryList(entries, icons, fp, AudioVideo, "Multimedia");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Development, "Development");
     WriteJWMRootMenuCategoryList(entries, icons, fp, Office, "Office");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Graphics,"Graphics");
-    //WriteJWMRootMenuCategoryList(entries, icons, fp, Video,"Multimedia");
     WriteJWMRootMenuCategoryList(entries, icons, fp, Settings, "Settings");
     WriteJWMRootMenuCategoryList(entries, icons, fp, System, "System");
     WriteJWMRootMenuCategoryList(entries, icons, fp, Utility,"Utilities");
@@ -949,7 +955,7 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
     {
         CFG_STR_LIST("mods", NULL, CFGF_NONE),
         CFG_STR("key", "T", CFGF_NONE),
-        CFG_STR("command", "exec:xterm", CFGF_NONE),
+        CFG_STR("command", NULL, CFGF_NONE),
 		CFG_END()
 	};
 
@@ -1014,6 +1020,7 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
         CFG_BOOL("pager_use_global_colors", true, CFGF_NONE),
         CFG_BOOL("pager_use_global_font", true, CFGF_NONE),
         CFG_BOOL("pager_outline_enabled", true, CFGF_NONE),
+        CFG_BOOL("pager_labled", true, CFGF_NONE),
         CFG_STR("pager_bg_color_active", "#222222", CFGF_NONE),
         CFG_STR("pager_bg_color_inactive", "#111111", CFGF_NONE),
         CFG_STR("pager_fg_color_active", "#DDDDDD", CFGF_NONE),
@@ -1136,6 +1143,7 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
     jwm->pager_use_global_colors = cfg_getbool(cfg, "pager_use_global_colors");
     jwm->pager_use_global_font = cfg_getbool(cfg, "pager_use_global_font");
     jwm->pager_outline_enabled = cfg_getbool(cfg, "pager_outline_enabled");
+    jwm->pager_labled = cfg_getbool(cfg, "pager_labled");
     jwm->pager_bg_color_active = cfg_getstr(cfg, "pager_bg_color_active");
     jwm->pager_bg_color_inactive = cfg_getstr(cfg, "pager_bg_color_inactive");
     jwm->pager_fg_color_active = cfg_getstr(cfg, "pager_fg_color_active");

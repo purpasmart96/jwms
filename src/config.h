@@ -93,6 +93,7 @@ typedef struct
     bool pager_use_global_colors;
     bool pager_use_global_font;
     bool pager_outline_enabled;
+    bool pager_labled;
     char *pager_bg_color_active;
     char *pager_bg_color_inactive;
     char *pager_fg_color_active;
