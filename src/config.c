@@ -297,6 +297,52 @@ static int GenJWMPreferences(JWM *jwm)
     return 0;
 }
 
+static void WriteAutostartProgram(FILE *fp, int sleep_time, bool kill, bool fork, const char *program, const char *args)
+{
+    printf("program: %s\n", program);
+    if (kill)
+        WRITE_CFG("pkill %s\n", program);
+
+    if (args != NULL)
+    {
+        if (fork && sleep_time > 0)
+        {
+            WRITE_CFG("sleep %d && %s %s &\n", sleep_time, program, args);
+        }
+        else if (sleep_time > 0)
+        {
+            WRITE_CFG("sleep %d && %s %s\n", sleep_time, program, args);
+        }
+        else if (fork)
+        {
+            WRITE_CFG("%s %s &\n", program, args);
+        }
+        else
+        {
+            WRITE_CFG("%s %s\n", program, args);
+        }
+    }
+    else
+    {
+        if (fork && sleep_time > 0)
+        {
+            WRITE_CFG("sleep %d && %s &\n", sleep_time, program);
+        }
+        else if (sleep_time > 0)
+        {
+            WRITE_CFG("sleep %d && %s\n", sleep_time, program);
+        }
+        else if (fork)
+        {
+            WRITE_CFG("%s &\n", program);
+        }
+        else
+        {
+            WRITE_CFG("%s\n", program);
+        }
+    }
+}
+
 static int GenJWMAutoStart(JWM *jwm, cfg_t *cfg)
 {
     char path[512];
@@ -341,49 +387,8 @@ static int GenJWMAutoStart(JWM *jwm, cfg_t *cfg)
             fclose(fp);
             return -1;
         }
-
-        printf("program: %s\n", program);
-        if (kill)
-            WRITE_CFG("pkill %s\n", program);
-
-        if (args != NULL)
-        {
-            if (fork && sleep_time > 0)
-            {
-                WRITE_CFG("sleep %d && %s %s &\n", sleep_time, program, args);
-            }
-            else if (sleep_time > 0)
-            {
-                WRITE_CFG("sleep %d && %s %s\n", sleep_time, program, args);
-            }
-            else if (fork)
-            {
-                WRITE_CFG("%s %s &\n", program, args);
-            }
-            else
-            {
-                WRITE_CFG("%s %s\n", program, args);
-            }
-        }
-        else
-        {
-            if (fork && sleep_time > 0)
-            {
-                WRITE_CFG("sleep %d && %s &\n", sleep_time, program);
-            }
-            else if (sleep_time > 0)
-            {
-                WRITE_CFG("sleep %d && %s\n", sleep_time, program);
-            }
-            else if (fork)
-            {
-                WRITE_CFG("%s &\n", program);
-            }
-            else
-            {
-                WRITE_CFG("%s\n", program);
-            }
-        }
+        
+        WriteAutostartProgram(fp, sleep_time, kill, fork, program, args);
 	}
 
     chmod(path, 0755);
@@ -825,6 +830,13 @@ static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
     fclose(fp);
 }
 
+static int CategoryCmp(const void *a, const void *b)
+{
+   const char *name1 = a;
+   const char *name2 = b;
+   return strcmp(name1, name2) == 0;
+}
+
 // Recursively traverse the BST in-order and write each entry to the file
 static void WriteMenuCategoriesInOrder(BTreeNode *entries, HashMap *icons, FILE *fp, XDGMainCategories category)
 {
@@ -833,7 +845,7 @@ static void WriteMenuCategoriesInOrder(BTreeNode *entries, HashMap *icons, FILE 
         WriteMenuCategoriesInOrder(entries->left, icons, fp, category);
 
         XDGDesktopEntry *entry = entries->data;
-        if (entry->category == category)
+        if (ListContains(entry->categories, GetXDGMainCategoryName(category), CategoryCmp))
         {
             const char *icon = HashMapGet(icons, entry->icon);
             if (icon == NULL)
@@ -867,6 +879,33 @@ static void WriteJWMRootMenuCategoryList(BTreeNode *entries, HashMap *icons, FIL
     WRITE_CFG("       </Menu>\n");
 }
 
+typedef struct
+{
+    char *real_name;
+    char *menu_name;
+    int value;
+} MenuEntry;
+
+typedef struct
+{
+    MenuEntry category;
+    bool found;
+} Args;
+
+static void CountCategories(void *ptr, void *args_ptr)
+{
+    XDGDesktopEntry *entry = ptr;
+    Args *args = args_ptr;
+    
+    for (size_t i = 0; i < 11; ++i)
+    {
+        if (ListContains(entry->categories, args[i].category.real_name, CategoryCmp))
+        {
+            args[i].found = true;
+        }
+    }
+}
+
 static void GenJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
 {
     char path[512];
@@ -890,16 +929,39 @@ static void GenJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
     WRITE_CFG("<JWM>\n");
     WRITE_CFG("    <RootMenu height=\"%d\" onroot=\"12\">\n", jwm->root_menu_height);
 
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Development, "Development");
-    //WriteJWMRootMenuCategoryList(entries, icons, fp, Education, "Education");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Game,"Games");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Graphics,"Graphics");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Network, "Internet");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, AudioVideo, "Multimedia");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Office, "Office");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Settings, "Settings");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, System, "System");
-    WriteJWMRootMenuCategoryList(entries, icons, fp, Utility,"Utilities");
+    // Clean up duplicate code, should refactor this imo
+    MenuEntry categories[] = {
+        {"Development", "Development", Development },
+        {"Education",   "Education",   Education   },
+        {"Game",        "Games",       Game        },
+        {"Graphics",    "Graphics",    Graphics    },
+        {"AudioVideo",  "Multimedia",  AudioVideo  },
+        {"Network",     "Internet",    Network     },
+        {"Office",      "Office",      Office      },
+        {"Science",     "Science",     Science     },
+        {"Settings",    "Settings",    Settings    },
+        {"System",      "System",      System      },
+        {"Utility",     "Utilities",   Utility     }
+    };
+
+    const int num_categories = 11;
+    Args args[num_categories];
+
+    for (size_t i = 0; i < num_categories; i++)
+    {
+        args[i].category = categories[i];
+        args[i].found = false;
+    }
+
+    BSTInOrderTraverse(entries, CountCategories, args);
+
+    for (int i = 0; i < num_categories; i++)
+    {
+        if (args[i].found)
+        {
+            WriteJWMRootMenuCategoryList(entries, icons, fp, args[i].category.value, args[i].category.menu_name);
+        }
+    }
 
     WRITE_CFG("        <Restart label=\"Refresh\" icon=\"view-refresh\"/>\n");
     WRITE_CFG("        <Exit label=\"Logout\" icon=\"system-log-out\"/>\n");

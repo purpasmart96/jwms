@@ -37,12 +37,12 @@ void ListDestroy(List *list)
     free(list);
 }
 
-bool ListContains(List *list, void *item)
+bool ListContains(List *list, void *item,  int (*CmpFunc)(const void*, const void*))
 {
     Node *current = list->head;
     while (current != NULL)
     {
-        if (current->data == item)
+        if (CmpFunc(current->data, item))
         {
             return true;
         }
@@ -65,13 +65,13 @@ void ListAdd(List *list, void *item, size_t data_size)
     list->size++;
 }
 
-// Only supports strings for now
-void ListPrint(List *list)
+void ListPrint(List *list, void (*PrintFunc)(void*))
 {
     Node *current = list->head;
     while (current != NULL)
     {
-        printf("%s\n", (char*)current->data);
+        PrintFunc(current->data);
+        //printf("%s\n", (char*)current->data);
         current = current->next;
     }
 }

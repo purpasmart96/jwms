@@ -1,19 +1,21 @@
-#include <libgen.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <ctype.h>
-
+#include <libgen.h>
 #include <dirent.h>
 #include <errno.h>
 
 #include <bsd/string.h>
-#include <string.h>
 
 #include "common.h"
 #include "bstree.h"
+#include "list.h"
+
 #include "desktop_entries.h"
+
 
 static const Pair xdg_keys[] =
 {
@@ -82,6 +84,11 @@ static XDGMainCategories GetXDGMainCategoryType(const char *category)
     return Invalid;
 }
 
+char *GetXDGMainCategoryName(XDGMainCategories category)
+{
+    return xdg_main_categories[category].key;
+}
+
 static XDGAdditionalCategories GetXDGAdditionalCategoryType(const char *category)
 {
     for (size_t i = 0; i < ARRAY_SIZE(xdg_extra_categories); i++)
@@ -129,17 +136,6 @@ static void StripTrailingWSpace(char *str)
     str[length] = '\0';
 }
 
-static void RemoveSubStrNoOverlap(char *str, const char *substr)
-{
-    char *found = strstr(str, substr);
-    if (!found)
-        return;
-
-    size_t sub_length = strlen(substr);
-    size_t end_length = strlen(found + sub_length) + 1;
-    memcpy(found, found + sub_length, end_length);
-}
-
 static XDGDesktopEntry *CreateEmptyEntry()
 {
     XDGDesktopEntry *entry = malloc(sizeof(*entry));
@@ -147,9 +143,10 @@ static XDGDesktopEntry *CreateEmptyEntry()
     if (entry == NULL)
         return NULL;
 
-    entry->category = Invalid;
+    entry->categories = ListCreate();
+    //entry->category = Invalid;
     entry->extra_category = IgnoredOrInvalid;
-    entry->category_name = NULL;
+    //entry->category_name = NULL;
     entry->extra_category_name = NULL;
     entry->name = NULL;
     entry->exec = NULL;
@@ -161,19 +158,27 @@ static XDGDesktopEntry *CreateEmptyEntry()
 static void DestroyEntry(void *entry)
 {
     XDGDesktopEntry *uentry = (XDGDesktopEntry*)entry;
-    free(uentry->category_name);
+    //free(uentry->category_name);
     free(uentry->extra_category_name);
     free(uentry->name);
     free(uentry->exec);
     free(uentry->icon);
+    ListDestroy(uentry->categories);
     free(entry);
+}
+
+static void CategoryPrint(void *ptr)
+{
+    printf("%s ", (char*)ptr);
 }
 
 static void EntryPrint(void *ptr, void *args)
 {
     XDGDesktopEntry *entry = ptr;
     printf("Program             : %s\n", entry->name);
-    printf("Category            : %s\n", entry->category_name);
+    printf("Categories          : ");
+    ListPrint(entry->categories, CategoryPrint);
+    printf("\n");
     printf("Extra Category      : %s\n", entry->extra_category_name);
     printf("CMD                 : %s\n", entry->exec);
     printf("Icon                : %s\n", entry->icon);
@@ -332,10 +337,16 @@ static void ParseCategories(XDGDesktopEntry *entry, char *categories)
         XDGMainCategories main = GetXDGMainCategoryType(token);
         XDGAdditionalCategories extra = GetXDGAdditionalCategoryType(token);
 
-        if (main != Invalid && entry->category_name == NULL)
+        if (main != Invalid)
         {
-            entry->category_name = strdup(token);
-            entry->category = main;
+            ListAdd(entry->categories, token, strlen(token) + 1);
+            /*
+            if (entry->category_name == NULL)
+            {
+                entry->category_name = strdup(token);
+                entry->category = main;
+            }
+            */
         }
 
         if (extra != IgnoredOrInvalid && entry->extra_category_name == NULL)

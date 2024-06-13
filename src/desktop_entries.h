@@ -69,9 +69,10 @@ typedef struct
 // /usr/share/applications
 typedef struct
 {
-    XDGMainCategories category;
+    List *categories;
+    //XDGMainCategories category;
     XDGAdditionalCategories extra_category;
-    char *category_name;
+    //char *category_name;
     char *extra_category_name;
     char *name;
     char *exec;
@@ -79,6 +80,8 @@ typedef struct
     char *icon;
     bool terminal_required;
 } XDGDesktopEntry;
+
+char *GetXDGMainCategoryName(XDGMainCategories category);
 
 void EntriesPrint(BTreeNode *entries);
 void EntryRemove(BTreeNode *entries, const char *key);
