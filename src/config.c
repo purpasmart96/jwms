@@ -406,7 +406,7 @@ typedef struct
 static const ModKeyMap key_mods[] =
 {
     {"Alt", "A"},
-    {"Ctrl", "C"},
+    {"Control", "C"},
     {"Shift", "S"}
 };
 
