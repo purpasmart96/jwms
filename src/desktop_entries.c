@@ -84,11 +84,6 @@ static XDGMainCategories GetXDGMainCategoryType(const char *category)
     return Invalid;
 }
 
-char *GetXDGMainCategoryName(XDGMainCategories category)
-{
-    return xdg_main_categories[category].key;
-}
-
 static XDGAdditionalCategories GetXDGAdditionalCategoryType(const char *category)
 {
     for (size_t i = 0; i < ARRAY_SIZE(xdg_extra_categories); i++)

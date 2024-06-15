@@ -837,58 +837,69 @@ static int CategoryCmp(const void *a, const void *b)
    return strcmp(name1, name2) == 0;
 }
 
-// Recursively traverse the BST in-order and write each entry to the file
-static void WriteMenuCategoriesInOrder(BTreeNode *entries, HashMap *icons, FILE *fp, XDGMainCategories category)
+typedef struct
 {
-    if (entries != NULL)
+    char *real_name;
+    char *menu_name;
+    int value;
+} MenuCategory;
+
+typedef struct
+{
+    HashMap *icons;
+    FILE *fp;
+    MenuCategory *category;
+} CategoryArgs;
+
+static void WriteMenuCategory(void *entry_ptr, void *args_ptr)
+{
+    XDGDesktopEntry *entry = entry_ptr;
+    CategoryArgs *args = args_ptr;
+    FILE *fp = args->fp;
+
+    if (ListContains(entry->categories, args->category->real_name, CategoryCmp))
     {
-        WriteMenuCategoriesInOrder(entries->left, icons, fp, category);
-
-        XDGDesktopEntry *entry = entries->data;
-        if (ListContains(entry->categories, GetXDGMainCategoryName(category), CategoryCmp))
+        const char *icon = HashMapGet(args->icons, entry->icon);
+        if (icon == NULL)
         {
-            const char *icon = HashMapGet(icons, entry->icon);
-            if (icon == NULL)
-            {
-                icon = entry->icon;
-            }
-
-            if (!entry->terminal_required)
-            {
-                WRITE_CFG("            <Program icon=\"%s\" label=\"%s\">%s</Program>\n",
-                            icon, entry->name, entry->exec);
-            }
-            else
-            {
-                WRITE_CFG("            <Program icon=\"%s\" label=\"%s\">x-terminal-emulator -e %s</Program>\n",
-                            icon, entry->name, entry->exec);
-            }
+            icon = entry->icon;
         }
-        WriteMenuCategoriesInOrder(entries->right, icons, fp, category);
+        
+        if (!entry->terminal_required)
+        {
+            WRITE_CFG("            <Program icon=\"%s\" label=\"%s\">%s</Program>\n",
+                         icon, entry->name, entry->exec);
+        }
+        else
+        {
+            WRITE_CFG("            <Program icon=\"%s\" label=\"%s\">x-terminal-emulator -e %s</Program>\n",
+                        icon, entry->name, entry->exec);
+        }
     }
 }
 
-static void WriteJWMRootMenuCategoryList(BTreeNode *entries, HashMap *icons, FILE *fp, XDGMainCategories category, const char *category_name)
+static void WriteJWMRootMenuCategoryList(BTreeNode *entries, HashMap *icons, FILE *fp, MenuCategory *category)
 {
-    char *category_icon = FindIcon(category_icons[category], 32, 1);
-    WRITE_CFG("       <Menu icon=\"%s\" label=\"%s\">\n", category_icon, category_name);
+    char *category_icon = FindIcon(category_icons[category->value], 32, 1);
+    WRITE_CFG("       <Menu icon=\"%s\" label=\"%s\">\n", category_icon, category->menu_name);
     free(category_icon);
  
-    WriteMenuCategoriesInOrder(entries, icons, fp, category);
+    CategoryArgs args =
+    {
+        .icons = icons,
+        .fp = fp,
+        .category = category,     
+    };
+
+    // Recursively traverse the BST in-order and write each entry to the file
+    BSTInOrderTraverse(entries, WriteMenuCategory, &args);
 
     WRITE_CFG("       </Menu>\n");
 }
 
 typedef struct
 {
-    char *real_name;
-    char *menu_name;
-    int value;
-} MenuEntry;
-
-typedef struct
-{
-    MenuEntry category;
+    MenuCategory category;
     bool found;
 } Args;
 
@@ -897,7 +908,7 @@ static void CountCategories(void *ptr, void *args_ptr)
     XDGDesktopEntry *entry = ptr;
     Args *args = args_ptr;
     
-    for (size_t i = 0; i < 11; ++i)
+    for (int i = 0; i < 11; ++i)
     {
         if (ListContains(entry->categories, args[i].category.real_name, CategoryCmp))
         {
@@ -930,11 +941,14 @@ static void GenJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
     WRITE_CFG("    <RootMenu height=\"%d\" onroot=\"12\">\n", jwm->root_menu_height);
 
     // Clean up duplicate code, should refactor this imo
-    MenuEntry categories[] = {
+    MenuCategory categories[] =
+    {
         {"Development", "Development", Development },
         {"Education",   "Education",   Education   },
         {"Game",        "Games",       Game        },
         {"Graphics",    "Graphics",    Graphics    },
+        //{"Audio",       "Multimedia",  Audio       },
+        //{"Video",       "Multimedia",  Video       },
         {"AudioVideo",  "Multimedia",  AudioVideo  },
         {"Network",     "Internet",    Network     },
         {"Office",      "Office",      Office      },
@@ -947,7 +961,7 @@ static void GenJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
     const int num_categories = 11;
     Args args[num_categories];
 
-    for (size_t i = 0; i < num_categories; i++)
+    for (int i = 0; i < num_categories; i++)
     {
         args[i].category = categories[i];
         args[i].found = false;
@@ -959,15 +973,15 @@ static void GenJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
     {
         if (args[i].found)
         {
-            WriteJWMRootMenuCategoryList(entries, icons, fp, args[i].category.value, args[i].category.menu_name);
+            WriteJWMRootMenuCategoryList(entries, icons, fp, &args[i].category);
         }
     }
 
     WRITE_CFG("        <Restart label=\"Refresh\" icon=\"view-refresh\"/>\n");
     WRITE_CFG("        <Exit label=\"Logout\" icon=\"system-log-out\"/>\n");
     // Let's assume were using systemd for now
-    WRITE_CFG("        <Program icon=\"system-reboot\" label=\"Restart\">systemctl reboot</Program>\n");
-    WRITE_CFG("        <Program icon=\"system-shutdown\" label=\"Shutdown\">systemctl poweroff</Program>\n");
+    //WRITE_CFG("        <Program icon=\"system-reboot\" label=\"Restart\">systemctl reboot</Program>\n");
+    //WRITE_CFG("        <Program icon=\"system-shutdown\" label=\"Shutdown\">systemctl poweroff</Program>\n");
     WRITE_CFG("    </RootMenu>\n");
     WRITE_CFG("</JWM>");
 

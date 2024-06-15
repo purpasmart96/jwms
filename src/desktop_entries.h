@@ -81,8 +81,6 @@ typedef struct
     bool terminal_required;
 } XDGDesktopEntry;
 
-char *GetXDGMainCategoryName(XDGMainCategories category);
-
 void EntriesPrint(BTreeNode *entries);
 void EntryRemove(BTreeNode *entries, const char *key);
 void EntriesDestroy(BTreeNode *entries);

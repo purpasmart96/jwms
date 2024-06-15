@@ -37,7 +37,7 @@ void ListDestroy(List *list)
     free(list);
 }
 
-bool ListContains(List *list, void *item,  int (*CmpFunc)(const void*, const void*))
+bool ListContains(List *list, const void *item,  int (*CmpFunc)(const void*, const void*))
 {
     Node *current = list->head;
     while (current != NULL)
