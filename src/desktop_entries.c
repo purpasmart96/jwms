@@ -526,6 +526,8 @@ int LoadDesktopEntries(BTreeNode **entries)
 
     struct dirent *dirp;
 
+    int count = 0;
+
     while ((dirp = readdir(dentry_dir)) != NULL)
     {
         char *ext = strrchr(dirp->d_name, '.');
@@ -539,13 +541,18 @@ int LoadDesktopEntries(BTreeNode **entries)
             if (entry != NULL)
             {
                 *entries = BSTInsertNode(*entries, entry, NameCmp);
+                count++;
             }
             else
             {
-                printf("Failed to parse or ignoring %s\n", buffer);
+                printf("Skipping %s\n", buffer);
+                #ifndef DISABLE_DEBUG
+                printf("\n");
+                #endif
             }
         }
     }
 
+    printf("\nFinished reading %d valid dekstop entries\n\n", count);
     return closedir(dentry_dir);
 }
