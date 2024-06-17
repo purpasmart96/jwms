@@ -206,7 +206,7 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
         // Parse key-value pairs in the section
         if (in_section)
         {
-            if (sscanf(line, "%127[^=]=%s", key, value) == 2)
+            if (sscanf(line, "%127[^=]=%127s", key, value) == 2)
             {
                 if (strcmp(key, "Size") == 0)
                 {
@@ -271,7 +271,6 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
     fclose(fp);
 }
 
-
 XDGIcon *IconCreate(const char *path, IconType type, IconContext context, int size, int min_size, int max_size, int scale, int threshold)
 {
     XDGIcon *icon_dir = malloc(sizeof(*icon_dir));
@@ -300,19 +299,6 @@ void IconPrint(void *icon_dir_ptr)
     printf("%s\n",icon_dir->path);
 }
 
-static void RemoveQuotes(char *str)
-{
-    if (str == NULL)
-        return;
-
-    size_t length = strlen(str);
-    if (str[0] == '"' && str[length - 1] == '"')
-    {
-        str[length - 1] = '\0';
-        memmove(str, str + 1, length - 1);
-    }
-}
-
 static int IconDirCmp(const void *a, const void *b)
 {
     const XDGIcon *icon_a = *(XDGIcon**)a;
@@ -328,7 +314,6 @@ IconTheme *LoadIconTheme(const char *theme_name)
     theme->name = strdup(theme_name);
     theme->icons = DArrayCreate(64, sizeof(XDGIcon*));
     //theme->icons2 = HashMapCreate2(sizeof(XDGIcon*), IconDestroy, IconPrint);
-    //ParseThemeIcons(theme->icons2, theme->paths, theme_name);
     ParseThemeIcons(theme->icons, theme_name);
     // Sort not really needed
     //DArraySort(theme->icons, IconDirCmp);
@@ -348,9 +333,41 @@ void UnLoadIconTheme(IconTheme *icon_theme)
     free(icon_theme);
 }
 
+// This could be a general utility function for all forms of parsing ini like key value pairs
+static int ParseGtkThemeValue(const char *line, char *value)
+{
+    char *equalsym = strchr(line, '=');
+
+    if (equalsym == NULL)
+        return -1;
+
+    // Start of the value after '='
+    char *start = equalsym + 1;
+
+    // skip whitespace
+    while (*start == ' ')
+        start++;
+
+    if (*start == '"')
+    {
+        // Skip opening quote
+        start++;
+        // Find end of quoted value
+        size_t len = strcspn(start, "\"\n");
+        strlcpy(value, start, len + 1);
+    }
+    else
+    {
+        // Find end of quoted value
+        size_t len = strcspn(start, "\n");
+        strlcpy(value, start, len + 1);
+    }
+
+    return 0;
+}
+
 char *GetCurrentGTKIconThemeName()
 {
-    FILE *fp;
     char path[512];
 
     const char *home = getenv("HOME");
@@ -360,7 +377,7 @@ char *GetCurrentGTKIconThemeName()
     strlcat(path, "/", sizeof(path));
     strlcat(path, fname, sizeof(path));
 
-    fp = fopen(path, "r");
+    FILE *fp = fopen(path, "r");
 
     if (fp == NULL)
     {
@@ -380,24 +397,26 @@ char *GetCurrentGTKIconThemeName()
         if (line[0] == '\n' || line[0] == '#')
             continue;
 
-        // Simple trailing newline removal
-        line[strcspn(line, "\n")] = 0;
+        char key[256];
+        char value[256];
 
-        char *reserved;
-        char *key = strtok_r(line, "=", &reserved);
-        char *value = strtok_r(NULL, "=", &reserved);
-
-        if (value == NULL)
-            continue;
-
-        if (strcmp(key, "gtk-icon-theme-name") == 0)
+        // Use sscanf to parse the line
+        if (sscanf(line, " %255[^=]", key) == 1)
         {
-            RemoveQuotes(value);
-            icon_theme = strdup(value);
-            //strcpy(icon_theme, value);
-            break;
+            if (ParseGtkThemeValue(line, value) != -1)
+            {
+                if (strcmp(key, "gtk-icon-theme-name") == 0)
+                {
+                    //DEBUG_LOG("Icon Theme: %s\n", value);
+                    icon_theme = strdup(value);
+                    break;
+                }
+            }
+            else
+            {
+                DEBUG_LOG("Failed to parse key value pair: %s:%s\n", key, value);
+            }
         }
-
     }
 
     free(line);
@@ -588,9 +607,14 @@ success:
 HashMap *FindAllIcons(List *icons, int size, int scale)
 {
     char *theme = GetCurrentGTKIconThemeName();
+    if (theme == NULL)
+    {
+        printf("Failed to get GTK icon theme name!\n");
+        return NULL;
+    }
+
     IconTheme *icon_theme = LoadIconTheme(theme);
     IconTheme *default_theme = LoadIconTheme("hicolor");
-    //List *valid_icons = ListCreate();
     HashMap *valid_icons = HashMapCreate();
     Node *current = icons->head;
     while (current != NULL)
@@ -657,8 +681,26 @@ static void SearchAndStoreIcon(void *entry_ptr, void *args_ptr)
 HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
 {
     char *theme = GetCurrentGTKIconThemeName();
+    if (theme == NULL)
+    {
+        printf("Failed to get GTK icon theme name!\n");
+        return NULL;
+    }
+
     IconTheme *icon_theme = LoadIconTheme(theme);
+    if (icon_theme == NULL)
+    {
+        printf("Failed to load current GTK icon theme!\n");
+        return NULL;
+    }
+
     IconTheme *default_theme = LoadIconTheme("hicolor");
+    if (default_theme == NULL)
+    {
+        printf("Failed to load default GTK icon theme!\n");
+        return NULL;
+    }
+
     HashMap *valid_icons = HashMapCreate();
 
     Args args =

@@ -26,12 +26,25 @@
 int main()
 {
     BTreeNode *entries = NULL;
-    LoadDesktopEntries(&entries);
+    int success = LoadDesktopEntries(&entries);
+
+    if (success != 0)
+    {
+        printf("Failed to load desktop entries!\n");
+        return EXIT_FAILURE;
+    }
 
     // Test for node deletion code
     //EntryRemove(entries, "Okular");
 
+    printf("Loading icons...\n");
     HashMap *icons_output = FindAllIcons2(entries, 32, 1);
+    if (icons_output == NULL)
+    {
+        printf("Failed to load icons!\n");
+        return EXIT_FAILURE;
+    }
+    
     //HashMapPrint(icons_output);
 
     int result = WriteJWMConfig(entries, icons_output);
