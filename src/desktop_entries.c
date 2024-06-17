@@ -360,14 +360,19 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
     {
         case Type:
         {
+            DEBUG_LOG("Found Type: %s\n", value);
             // Ignore links and directories for now...
             if (strcmp(value, "Application") == 0)
                 info->application = true;
             break;
         }
 
+        case Version:
+        break;
+
         case Name:
         {
+            DEBUG_LOG("Found Name: %s\n", value);
             if (entry->name != NULL)
             {
                 printf("Name already set! %s -> %s\n", entry->name, value);
@@ -389,6 +394,7 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         break;
         case Icon:
         {
+            DEBUG_LOG("Found Icon: %s\n", value);
             if (entry->icon != NULL)
             {
                 printf("Icon already set! %s -> %s\n", entry->icon, value);
@@ -409,6 +415,7 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         }
         case Exec:
         {
+            DEBUG_LOG("Found Exec: %s\n", value);
             ParseExec(entry, value);
             info->has_exec = true;
             break;
@@ -434,10 +441,11 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
             break;
         }
         case URL:
+            DEBUG_LOG("Found URL: %s\n", value);
         break;
 
         default:
-            DEBUG_LOG("Invalid or ingored category \"%s\" contains \"%s\"\n", key, value);
+            DEBUG_LOG("Invalid or ingored key: \"%s\" contains \"%s\"\n", key, value);
         break;
     }
 }
@@ -536,19 +544,18 @@ int LoadDesktopEntries(BTreeNode **entries)
             strlcpy(buffer, path, sizeof(buffer));
             strlcat(buffer, dirp->d_name, sizeof(buffer));
 
+            DEBUG_LOG("\nReading %s\n", buffer);
             XDGDesktopEntry *entry = ReadDesktopEntry(buffer);
 
             if (entry != NULL)
             {
                 *entries = BSTInsertNode(*entries, entry, NameCmp);
                 count++;
+                DEBUG_LOG("Adding entry \"%s\" from %s to the tree\n", entry->name, buffer);
             }
             else
             {
                 printf("Skipping %s\n", buffer);
-                #ifndef DISABLE_DEBUG
-                printf("\n");
-                #endif
             }
         }
     }
