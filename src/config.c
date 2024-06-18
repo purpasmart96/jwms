@@ -988,15 +988,63 @@ static void GenJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
     fclose(fp);
 }
 
+// There will only be one backup of the .jwmrc file
+static int CreateJWMRCBackup(char *path, char *backup_path)
+{
+    FILE *fp = fopen(path, "r");
+
+    if (fp == NULL)
+    {
+        printf("%s does not exist! Skipping creation of backup!\n", path);
+        return -1;
+    }
+
+    FILE *fp_bak = fopen(backup_path, "w");
+
+    if (fp_bak == NULL)
+    {
+        fprintf(stderr, "Error opening '%s': %s\n", backup_path, strerror(errno));
+        return -1;
+    }
+
+    char buffer[BUFSIZ];
+    size_t bytes_read = 0;
+
+    // Read contents from file and write the contents to a new file
+    while ((bytes_read = fread(buffer, 1, BUFSIZ, fp)) > 0)
+    {
+        if (fwrite(buffer, 1, bytes_read, fp_bak) != bytes_read)
+        {
+            fprintf(stderr, "Error writing to '%s': %s\n", backup_path, strerror(errno));
+            fclose(fp);
+            fclose(fp_bak);
+            return -1;
+        }
+    }
+
+    fclose(fp);
+    fclose(fp_bak);
+    return 0;
+}
+
 static int GenJWMRCFile(JWM *jwm)
 {
     char path[512];
+    char path_bak[512];
     const char *home = getenv("HOME");
     const char *fname = ".jwmrc";
+    const char *fnamebak = ".jwmrc.BAK";
 
     strlcpy(path, home, sizeof(path));
     strlcat(path, "/", sizeof(path));
+    strlcpy(path_bak, path, sizeof(path_bak));
     strlcat(path, fname, sizeof(path));
+    strlcat(path_bak, fnamebak, sizeof(path_bak));
+
+    if (CreateJWMRCBackup(path, path_bak) == 0)
+    {
+        DEBUG_LOG("Succesfully created backup of %s in %s\n", fname, path_bak);
+    }
 
     FILE *fp = fopen(path, "w");
 
