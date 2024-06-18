@@ -401,7 +401,7 @@ char *GetCurrentGTKIconThemeName()
         char value[256];
 
         // Use sscanf to parse the line
-        if (sscanf(line, " %255[^=]", key) == 1)
+        if (sscanf(line, " %255[^= ]", key) == 1)
         {
             if (ParseGtkThemeValue(line, value) != -1)
             {
