@@ -23,6 +23,8 @@
 
 #include "config.h"
 
+static XDGDesktopEntry *g_terminal = NULL;
+
 #define WRITE_CFG(...) \
     fprintf(fp, __VA_ARGS__)
 
@@ -283,7 +285,8 @@ static int GenJWMPreferences(JWM *jwm)
     WRITE_CFG("<?xml version=\"1.0\"?>\n");
     WRITE_CFG("<JWM>\n");
     WRITE_CFG("   <Desktops width=\"%d\" height=\"%d\">\n", 2, 1);
-    WRITE_CFG("       <Background type=\"%s\">%s</Background>\n", "solid", "555555");
+    //WRITE_CFG("       <Background type=\"%s\">%s</Background>\n", "scale", "/usr/share/endeavouros/backgrounds/endeavouros-wallpaper.png");
+    WRITE_CFG("       <Background type=\"%s\">%s</Background>\n", "solid", "#222222");
     WRITE_CFG("   </Desktops>\n");
     WRITE_CFG("   <DoubleClickSpeed>%d</DoubleClickSpeed>\n", 400);
     WRITE_CFG("   <DoubleClickDelta>%d</DoubleClickDelta>\n", 2);
@@ -694,16 +697,16 @@ static int GenJWMStyles(JWM *jwm)
 static void WriteJWMTray(JWM *jwm, BTreeNode *entries, FILE *fp, HashMap *icons)
 {
     // Get Terminal
-    XDGDesktopEntry *terminal = GetCoreProgram(entries, TerminalEmulator, jwm->terminal_name);
-    if (terminal != NULL)
+    g_terminal = GetCoreProgram(entries, TerminalEmulator, jwm->terminal_name);
+    if (g_terminal != NULL)
     {
-        const char *icon = HashMapGet(icons, terminal->icon);
+        const char *icon = HashMapGet(icons, g_terminal->icon);
         if (icon == NULL)
         {
-            icon = terminal->icon;
+            icon = g_terminal->icon;
         }
 
-        WRITE_CFG("       <TrayButton popup=\"%s\" icon=\"%s\">exec:%s</TrayButton>\n", terminal->name, icon, terminal->exec);
+        WRITE_CFG("       <TrayButton popup=\"%s\" icon=\"%s\">exec:%s</TrayButton>\n", g_terminal->name, icon, g_terminal->exec);
     }
     else
     {
@@ -780,7 +783,7 @@ static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
     }
     else if (jwm->tray_pos == Top)
     {
-        WRITE_CFG("   <Tray x=\"0\" y=\"+1\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
+        WRITE_CFG("   <Tray x=\"0\" y=\"0\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
     }
     else
     {
@@ -872,8 +875,8 @@ static void WriteMenuCategory(void *entry_ptr, void *args_ptr)
         }
         else
         {
-            WRITE_CFG("            <Program icon=\"%s\" label=\"%s\">x-terminal-emulator -e %s</Program>\n",
-                        icon, entry->name, entry->exec);
+            WRITE_CFG("            <Program icon=\"%s\" label=\"%s\">%s -e %s</Program>\n",
+                        icon, entry->name, g_terminal->exec, entry->exec);
         }
     }
 }
@@ -1322,8 +1325,6 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
     if (CreateJWMFolder(jwm) != 0)
         goto failure;
 
-    GenJWMRootMenu(jwm, entries, icons);
-
     if (GenJWMStartup(jwm) != 0)
         goto failure;
 
@@ -1331,6 +1332,8 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
         goto failure;
 
     GenJWMTray(jwm, entries, icons);
+
+    GenJWMRootMenu(jwm, entries, icons);
 
     //UseTheme(jwm, BreezeDark);
 
