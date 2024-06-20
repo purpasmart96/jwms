@@ -242,6 +242,7 @@ static XDGDesktopEntry *InorderTraverseProgramSearch(BTreeNode *node, XDGAdditio
         {
             return entry;
         }
+        DEBUG_LOG("%s was not found in %s\n", base_name, entry->exec);
         *fallback = entry;
     }
 
@@ -440,6 +441,9 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
             ParseCategories(entry, value);
             break;
         }
+        case Keywords:
+            DEBUG_LOG("Found Keywords: %s\n", value);
+        break;
         case URL:
             DEBUG_LOG("Found URL: %s\n", value);
         break;
