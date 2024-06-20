@@ -55,12 +55,28 @@ typedef struct
     char *tray_font_alignment;
     int tray_font_size;
 
+    bool tasklist_use_global_decorations_style;
+    bool tasklist_use_global_colors;
+    bool tasklist_use_global_font;
+    bool tasklist_outline_enabled;
+    char *tasklist_decorations_style;
+    char *tasklist_bg_color_active;
+    char *tasklist_bg_color_inactive;
+    char *tasklist_fg_color_active;
+    char *tasklist_fg_color_inactive;
+    char *tasklist_outline_color_active;
+    char *tasklist_outline_color_inactive;
+    char *tasklist_font;
+    char *tasklist_font_alignment;
+    int tasklist_font_size;
+
     int root_menu_height;
 
     bool window_use_global_decorations_style;
     bool window_use_global_colors;
     bool window_use_global_font;
     bool window_outline_enabled;
+    bool window_use_aerosnap;
     int window_height;
     int window_width;
     int window_corner_rounding;
@@ -118,6 +134,10 @@ typedef struct
     char *menu_font;
     char *menu_font_alignment;
     int menu_font_size;
+
+    int desktop_workspaces;
+    char *desktop_background_type;
+    char *desktop_background;
 
     char *autogen_config_path;
     char *browser_name;

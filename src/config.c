@@ -255,7 +255,8 @@ static int GenJWMGroup(JWM *jwm)
     WRITE_CFG("<JWM>\n");
     WRITE_CFG("    <Group>\n");
     WRITE_CFG("        <Option>tiled</Option>\n");
-    //WRITE_CFG("        <Option>aerosnap</Option>\n");
+    if (jwm->window_use_aerosnap)
+        WRITE_CFG("        <Option>aerosnap</Option>\n");
     WRITE_CFG("    </Group>\n");
     WRITE_CFG("</JWM>\n");
 
@@ -284,9 +285,8 @@ static int GenJWMPreferences(JWM *jwm)
     // Start of the prefs xml file
     WRITE_CFG("<?xml version=\"1.0\"?>\n");
     WRITE_CFG("<JWM>\n");
-    WRITE_CFG("   <Desktops width=\"%d\" height=\"%d\">\n", 2, 1);
-    //WRITE_CFG("       <Background type=\"%s\">%s</Background>\n", "scale", "/usr/share/endeavouros/backgrounds/endeavouros-wallpaper.png");
-    WRITE_CFG("       <Background type=\"%s\">%s</Background>\n", "solid", "#222222");
+    WRITE_CFG("   <Desktops width=\"%d\" height=\"%d\">\n", jwm->desktop_workspaces, 1);
+    WRITE_CFG("       <Background type=\"%s\">%s</Background>\n", jwm->desktop_background_type, jwm->desktop_background);
     WRITE_CFG("   </Desktops>\n");
     WRITE_CFG("   <DoubleClickSpeed>%d</DoubleClickSpeed>\n", 400);
     WRITE_CFG("   <DoubleClickDelta>%d</DoubleClickDelta>\n", 2);
@@ -576,23 +576,23 @@ static void WriteJWMStyle(JWM *jwm, FILE *fp, Styles style)
         case TaskListStyle:
         {
             WRITE_CFG(" list=\"all\" group=\"true\">\n");
-            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(tray), GetFontName(tray), GetFontSize(tray));
-            WRITE_CFG("        <Foreground>%s</Foreground>\n", GetFGColor(tray, inactive));
-            WRITE_CFG("        <Background>%s</Background>\n", GetBGColor(tray, inactive));
+            WRITE_CFG("        <Font align=\"%s\">%s-%d</Font>\n", GetFontAlignment(tasklist), GetFontName(tasklist), GetFontSize(tasklist));
+            WRITE_CFG("        <Foreground>%s</Foreground>\n", GetFGColor(tasklist, inactive));
+            WRITE_CFG("        <Background>%s</Background>\n", GetBGColor(tasklist, inactive));
 
             if (jwm->tray_outline_enabled)
             {
-                WRITE_CFG("        <Outline>%s</Outline>\n", GetOutlineColor(tray, inactive));
+                WRITE_CFG("        <Outline>%s</Outline>\n", GetOutlineColor(tasklist, inactive));
                 WRITE_CFG("        <Active>\n");
-                WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(tray, active));
-                WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(tray, active));
-                WRITE_CFG("            <Outline>%s</Outline>\n", GetOutlineColor(tray, active));
+                WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(tasklist, active));
+                WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(tasklist, active));
+                WRITE_CFG("            <Outline>%s</Outline>\n", GetOutlineColor(tasklist, active));
             }
             else
             {
                 WRITE_CFG("        <Active>\n");
-                WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(tray, active));
-                WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(tray, active));
+                WRITE_CFG("            <Foreground>%s</Foreground>\n", GetFGColor(tasklist, active));
+                WRITE_CFG("            <Background>%s</Background>\n", GetBGColor(tasklist, active));
             }
 
             WRITE_CFG("        </Active>\n");
@@ -1114,6 +1114,7 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
         CFG_BOOL("window_use_global_decorations_style", true, CFGF_NONE),
         CFG_BOOL("window_use_global_colors", true, CFGF_NONE),
         CFG_BOOL("window_use_global_font", true, CFGF_NONE),
+        CFG_BOOL("window_use_aerosnap", false, CFGF_NONE),
         CFG_BOOL("window_outline_enabled", false, CFGF_NONE),
         CFG_INT("window_height", 26, CFGF_NONE),
         CFG_INT("window_width", 4, CFGF_NONE),
@@ -1198,6 +1199,25 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
         CFG_STR("tray_font_alignment", "center", CFGF_NONE),
         CFG_INT("tray_font_size", 10, CFGF_NONE),
 
+        CFG_BOOL("tasklist_use_global_decorations_style", true, CFGF_NONE),
+        CFG_BOOL("tasklist_use_global_colors", true, CFGF_NONE),
+        CFG_BOOL("tasklist_use_global_font", true, CFGF_NONE),
+        CFG_BOOL("tasklist_outline_enabled", false, CFGF_NONE),
+        CFG_STR("tasklist_decorations_style", "flat", CFGF_NONE),
+        CFG_STR("tasklist_bg_color_active", "#222222", CFGF_NONE),
+        CFG_STR("tasklist_bg_color_inactive", "#111111", CFGF_NONE),
+        CFG_STR("tasklist_fg_color_active", "#DDDDDD", CFGF_NONE),
+        CFG_STR("tasklist_fg_color_inactive", "#CCCCCC", CFGF_NONE),
+        CFG_STR("tasklist_outline_color_active", "#FFFFFF", CFGF_NONE),
+        CFG_STR("tasklist_outline_color_inactive", "#FFFFFF", CFGF_NONE),
+        CFG_STR("tasklist_font", "Sans", CFGF_NONE),
+        CFG_STR("tasklist_font_alignment", "center", CFGF_NONE),
+        CFG_INT("tasklist_font_size", 10, CFGF_NONE),
+
+        CFG_INT("desktop_workspaces", 2, CFGF_NONE),
+        CFG_STR("desktop_background_type", "solid", CFGF_NONE),
+        CFG_STR("desktop_background", "#333333", CFGF_NONE),
+
         CFG_SEC("keybind", keybind_opts, CFGF_MULTI | CFGF_TITLE),
         CFG_SEC("autostart", autostart_opts, CFGF_MULTI | CFGF_TITLE),
         CFG_END()
@@ -1236,6 +1256,7 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
     jwm->window_use_global_decorations_style = cfg_getbool(cfg, "window_use_global_decorations_style");
     jwm->window_use_global_colors = cfg_getbool(cfg, "window_use_global_colors");
     jwm->window_use_global_font = cfg_getbool(cfg, "window_use_global_font");
+    jwm->window_use_aerosnap = cfg_getbool(cfg, "window_use_aerosnap");
     jwm->window_height = cfg_getint(cfg, "window_height");
     jwm->window_width = cfg_getint(cfg, "window_width");
     jwm->window_corner_rounding = cfg_getint(cfg, "window_corner_rounding");
@@ -1319,6 +1340,25 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
     jwm->tray_font = cfg_getstr(cfg, "tray_font");
     jwm->tray_font_alignment = cfg_getstr(cfg, "tray_font_alignment");
     jwm->tray_font_size = cfg_getint(cfg, "tray_font_size");
+
+    jwm->tasklist_use_global_decorations_style = cfg_getbool(cfg, "tasklist_use_global_decorations_style");
+    jwm->tray_use_global_colors = cfg_getbool(cfg, "tasklist_use_global_colors");
+    jwm->tasklist_use_global_font = cfg_getbool(cfg, "tasklist_use_global_font");
+    jwm->tasklist_outline_enabled = cfg_getbool(cfg, "tasklist_outline_enabled");
+    jwm->tasklist_decorations_style = cfg_getstr(cfg, "tasklist_decorations_style");
+    jwm->tasklist_bg_color_active = cfg_getstr(cfg, "tasklist_bg_color_active");
+    jwm->tasklist_bg_color_inactive = cfg_getstr(cfg, "tasklist_bg_color_inactive");
+    jwm->tasklist_fg_color_active = cfg_getstr(cfg, "tasklist_fg_color_active");
+    jwm->tasklist_fg_color_inactive = cfg_getstr(cfg, "tasklist_fg_color_inactive");
+    jwm->tasklist_outline_color_active = cfg_getstr(cfg, "tasklist_outline_color_active");
+    jwm->tasklist_outline_color_inactive = cfg_getstr(cfg, "tasklist_outline_color_inactive");
+    jwm->tasklist_font = cfg_getstr(cfg, "tasklist_font");
+    jwm->tasklist_font_alignment = cfg_getstr(cfg, "tasklist_font_alignment");
+    jwm->tasklist_font_size = cfg_getint(cfg, "tasklist_font_size");
+
+    jwm->desktop_workspaces = cfg_getint(cfg, "desktop_workspaces");
+    jwm->desktop_background_type = cfg_getstr(cfg, "desktop_background_type");
+    jwm->desktop_background = cfg_getstr(cfg, "desktop_background");
 
     jwm->root_menu_height = cfg_getint(cfg, "rootmenu_height");
 
