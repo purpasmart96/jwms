@@ -400,17 +400,19 @@ static int GenJWMAutoStart(JWM *jwm, cfg_t *cfg)
     return 0;
 }
 
-typedef struct
+static const struct
 {
     char *in;
     char *out;
-} ModKeyMap;
-
-static const ModKeyMap key_mods[] =
-{
-    {"Alt", "A"},
+} key_mods[] = {
+    {"Alt",     "A"},
     {"Control", "C"},
-    {"Shift", "S"}
+    {"Shift",   "S"},
+    {"mod1",    "1"},
+    {"mod2",    "2"},
+    {"mod3",    "3"},
+    {"mod4",    "4"},
+    {"mod5",    "5"}
 };
 
 static char *GetJWMKeyMod(char *in)
