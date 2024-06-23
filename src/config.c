@@ -696,6 +696,18 @@ static int GenJWMStyles(JWM *jwm)
     return 0;
 }
 
+static void AddTraySpacing(JWM *jwm, FILE *fp, int spacing)
+{
+    if (jwm->tray_pos < Left)
+    {
+        WRITE_CFG("       <Spacer width=\"%d\"/>\n", spacing);
+    }
+    else
+    {
+        WRITE_CFG("       <Spacer height=\"%d\"/>\n", spacing);
+    }
+}
+
 static void WriteJWMTray(JWM *jwm, BTreeNode *entries, FILE *fp, HashMap *icons)
 {
     // Get Terminal
@@ -715,7 +727,8 @@ static void WriteJWMTray(JWM *jwm, BTreeNode *entries, FILE *fp, HashMap *icons)
         WRITE_CFG("       <TrayButton popup=\"Terminal\" icon=\"terminal\">exec:x-terminal-emulator</TrayButton>\n");
     }
 
-    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    AddTraySpacing(jwm, fp, jwm->tray_icon_spacing);
+
     // Get FileManager
     XDGDesktopEntry *filemanager = GetCoreProgram(entries, FileManager, jwm->filemanager_name);
 
@@ -734,7 +747,7 @@ static void WriteJWMTray(JWM *jwm, BTreeNode *entries, FILE *fp, HashMap *icons)
         WRITE_CFG("       <TrayButton popup=\"File Manager\" icon=\"system-file-manager\">exec:spacefm</TrayButton>\n");
     }
 
-    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    AddTraySpacing(jwm, fp, jwm->tray_icon_spacing);
 
     // Get WebBrowser
     XDGDesktopEntry *browser = GetCoreProgram(entries, WebBrowser, jwm->browser_name);
@@ -752,7 +765,7 @@ static void WriteJWMTray(JWM *jwm, BTreeNode *entries, FILE *fp, HashMap *icons)
         WRITE_CFG("       <TrayButton popup=\"Web browser\" icon=\"firefox\">exec:firefox</TrayButton>\n");
     }
 
-    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    AddTraySpacing(jwm, fp, jwm->tray_icon_spacing);
 }
 
 static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
@@ -778,7 +791,6 @@ static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
     WRITE_CFG("<?xml version=\"1.0\"?>\n");
     WRITE_CFG("<JWM>\n");
 
-    // This can be improved...
     if (jwm->tray_pos == Bottom)
     {
         WRITE_CFG("   <Tray x=\"0\" y=\"-1\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
@@ -787,15 +799,18 @@ static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
     {
         WRITE_CFG("   <Tray x=\"0\" y=\"0\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
     }
+    else if (jwm->tray_pos == Left)
+    {
+        WRITE_CFG("   <Tray x=\"0\" y=\"-1\" width=\"%d\" layout=\"vertical\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
+    }
     else
     {
-        WRITE_CFG("   <Tray x=\"0\" y=\"-1\" height=\"%d\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
-        printf("Error! Tray Position Not Implemented Yet!\n");
+        WRITE_CFG("   <Tray x=\"-1\" y=\"0\" width=\"%d\" layout=\"vertical\" autohide=\"%s\" delay=\"1000\">\n", jwm->tray_height, auto_hide);
     }
 
     if (jwm->tray_use_menu_icon)
     {
-        char *resolved_icon = FindIcon(jwm->tray_menu_icon, 32, 1);
+        char *resolved_icon = FindIcon(jwm->tray_menu_icon, jwm->global_preferred_icon_size, 1);
 
         // Use the new icon if found, otherwise use the provided icon
         const char *icon_path = (resolved_icon != NULL) ? resolved_icon : jwm->tray_menu_icon;
@@ -815,19 +830,24 @@ static void GenJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
         WRITE_CFG("       <TrayButton label=\"%s\">root:1</TrayButton>\n", jwm->tray_menu_text);
     }
 
-    char *show_desktop_icon = FindIcon("desktop", 32, 1);
-    WRITE_CFG("       <Spacer width=\"%d\"/>\n", 4);
+    char *show_desktop_icon = FindIcon("desktop", jwm->global_preferred_icon_size, 1);
+    AddTraySpacing(jwm, fp, jwm->tray_icon_spacing);
     WriteJWMTray(jwm, entries, fp, icons);
     WRITE_CFG("       <TaskList maxwidth=\"%d\"/>\n", 200);
-    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    WRITE_CFG("       <Spacer/>\n");
     WRITE_CFG("       <TrayButton popup=\"Show Desktop\" icon=\"%s\">showdesktop</TrayButton>\n", show_desktop_icon);
-    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    AddTraySpacing(jwm, fp, jwm->tray_icon_spacing);
     WRITE_CFG("       <Pager labeled=\"%s\"/>\n", jwm->pager_labled ? "true" : "false");
-    WRITE_CFG("       <Spacer width=\"%d\"/>\n",jwm->tray_icon_spacing);
-    WRITE_CFG("       <Dock/>\n");
-    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    AddTraySpacing(jwm, fp, jwm->tray_icon_spacing);
+
+    if (jwm->tray_use_systray)
+    {
+        WRITE_CFG("       <Dock spacing=\"%d\" width=\"%d\"/>\n", jwm->tray_systray_spacing, jwm->tray_systray_size);
+        AddTraySpacing(jwm, fp, jwm->tray_icon_spacing);
+    }
+
     WRITE_CFG("       <Clock format=\"%%l:%%M %%p\"><Button mask=\"123\">exec:xclock</Button></Clock>\n");
-    WRITE_CFG("       <Spacer width=\"%d\"/>\n", jwm->tray_icon_spacing);
+    AddTraySpacing(jwm, fp, jwm->tray_icon_spacing);
     WRITE_CFG("   </Tray>\n");
     WRITE_CFG("</JWM>");
 
@@ -1109,6 +1129,7 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
         CFG_STR("global_fg_color_active", "#DDDDDD", CFGF_NONE),
         CFG_STR("global_fg_color_inactive", "#CCCCCC", CFGF_NONE),
         CFG_STR("global_outline_color", "#FFFFFF", CFGF_NONE),
+        CFG_INT("global_preferred_icon_size", 32, CFGF_NONE),
         CFG_STR("global_font", "Sans", CFGF_NONE),
         CFG_STR("global_font_alignment", "center", CFGF_NONE),
         CFG_INT("global_font_size", 10, CFGF_NONE),
@@ -1182,7 +1203,10 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
         CFG_BOOL("tray_use_global_colors", true, CFGF_NONE),
         CFG_BOOL("tray_use_global_font", true, CFGF_NONE),
         CFG_BOOL("tray_use_menu_icon", false, CFGF_NONE),
+        CFG_BOOL("tray_use_systray", true, CFGF_NONE),
         CFG_BOOL("tray_outline_enabled", false, CFGF_NONE),
+        CFG_INT("tray_systray_size", 24, CFGF_NONE),
+        CFG_INT("tray_systray_spacing", 4, CFGF_NONE),
         CFG_STR("tray_decorations_style", "flat", CFGF_NONE),
         CFG_STR("tray_bg_color_active", "#222222", CFGF_NONE),
         CFG_STR("tray_bg_color_inactive", "#111111", CFGF_NONE),
@@ -1324,6 +1348,9 @@ int WriteJWMConfig(BTreeNode *entries, HashMap *icons)
     jwm->tray_use_global_font = cfg_getbool(cfg, "tray_use_global_font");
     jwm->tray_use_menu_icon = cfg_getbool(cfg, "tray_use_menu_icon");
     jwm->tray_outline_enabled = cfg_getbool(cfg, "tray_outline_enabled");
+    jwm->tray_use_systray = cfg_getbool(cfg, "tray_use_systray");
+    jwm->tray_systray_size = cfg_getint(cfg, "tray_systray_size");
+    jwm->tray_systray_spacing = cfg_getint(cfg, "tray_systray_spacing");
     jwm->tray_decorations_style = cfg_getstr(cfg, "tray_decorations_style");
     jwm->tray_bg_color_active = cfg_getstr(cfg, "tray_bg_color_active");
     jwm->tray_bg_color_inactive = cfg_getstr(cfg, "tray_bg_color_inactive");

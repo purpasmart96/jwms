@@ -28,6 +28,7 @@ typedef struct
     char *global_fg_color_active;
     char *global_fg_color_inactive;
     char *global_outline_color;
+    int global_preferred_icon_size;
     char *global_font;
     char *global_font_alignment;
     int global_font_size;
@@ -36,8 +37,11 @@ typedef struct
     bool tray_use_global_colors;
     bool tray_use_global_font;
     bool tray_use_menu_icon;
+    bool tray_use_systray;
     TrayPositions tray_pos;
     int tray_height;
+    int tray_systray_size;
+    int tray_systray_spacing;
     char *tray_menu_icon;
     char *tray_menu_text;
     bool tray_auto_hide;
