@@ -86,7 +86,7 @@ void EntryRemove(BTreeNode *entries, const char *key);
 void EntriesDestroy(BTreeNode *entries);
 XDGDesktopEntry *EntriesSearch(BTreeNode *entries, const char *key);
 XDGDesktopEntry *GetCoreProgram(BTreeNode *entries, XDGAdditionalCategories extra_category, char *name);
-int LoadDesktopEntries(BTreeNode **entries);
+int LoadDesktopEntries(BTreeNode **entries, const char *path);
 
 
 #endif

@@ -20,4 +20,7 @@ typedef struct {
     int value;
 } Pair;
 
+void CombinePath(char *dest, size_t dest_size, const char *path1, const char *path2);
+int ExpandPath(const char *path, char *expanded_path, size_t buffer_size);
+
 #endif

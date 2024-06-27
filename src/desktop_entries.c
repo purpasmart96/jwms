@@ -526,10 +526,10 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
     return NULL;
 }
 
-int LoadDesktopEntries(BTreeNode **entries)
+int LoadDesktopEntries(BTreeNode **entries, const char *path)
 {
     char buffer[512];
-    const char *path = "/usr/share/applications/";
+    //const char *path = "/usr/share/applications/";
 
     DIR *dentry_dir = opendir(path);
 

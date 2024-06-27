@@ -13,6 +13,7 @@
 #include <bsd/string.h>
 #include <confuse.h>
 
+#include "common.h"
 #include "darray.h"
 #include "list.h"
 #include "hashing.h"
@@ -26,19 +27,33 @@
 int main()
 {
     BTreeNode *entries = NULL;
-    int success = LoadDesktopEntries(&entries);
+
+    const char *default_app_dir = "/usr/share/applications/";
+    const char *user_app_dir = "~/.local/share/applications/";
+
+    int success = LoadDesktopEntries(&entries, default_app_dir);
 
     if (success != 0)
     {
-        printf("Failed to load desktop entries!\n");
+        printf("Failed to load desktop entries from the default path %s!\n", default_app_dir);
         return EXIT_FAILURE;
     }
+
+    char user_app_dir_buffer[512];
+    ExpandPath(user_app_dir, user_app_dir_buffer, sizeof(user_app_dir_buffer));
+    success = LoadDesktopEntries(&entries, user_app_dir_buffer);
+
+    if (success != 0)
+    {
+        printf("Failed to load desktop entries from the user %s! Skipping...\n", user_app_dir_buffer);
+    }
+
 
     // Test for node deletion code
     //EntryRemove(entries, "Okular");
 
     printf("Loading icons...\n");
-    HashMap *icons_output = FindAllIcons2(entries, 32, 1);
+    HashMap *icons_output = FindAllIcons2(entries, 64, 1);
     if (icons_output == NULL)
     {
         printf("Failed to load icons!\n");
