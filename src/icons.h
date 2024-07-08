@@ -64,7 +64,7 @@ typedef struct
 
 XDGIcon *IconCreate(const char *path, IconType type, IconContext context, int size, int min_size, int max_size, int scale, int threshold);
 
-char *GetCurrentGTKIconThemeName();
+int GetCurrentGTKIconThemeName(char theme_name[]);
 //char *LookupIcon(char *icon_name, int size, int scale, char *theme);
 char *LookupIcon2(IconTheme *theme, const char *icon_name, int size, int scale);
 char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale);

@@ -63,6 +63,8 @@ static const Pair xdg_main_categories[] =
     {"Utility",     Utility   }
 };
 
+static int xdg_main_category_tracker[13];
+
 static const Pair xdg_extra_categories[] =
 {
     {"WebBrowser",       WebBrowser      },
@@ -242,7 +244,7 @@ static XDGDesktopEntry *InorderTraverseProgramSearch(BTreeNode *node, XDGAdditio
         {
             return entry;
         }
-        DEBUG_LOG("%s was not found in %s\n", base_name, entry->exec);
+        DEBUG_LOG("Setting %s as an fallback since %s does not match %s\n", entry->exec, entry->exec, base_name);
         *fallback = entry;
     }
 
@@ -322,9 +324,10 @@ static void ParseExec(XDGDesktopEntry *entry, const char *exec)
     free(str_copy);
 }
 
-static void ParseCategories(XDGDesktopEntry *entry, char *categories)
+static void ParseCategories(XDGDesktopEntry *entry, char *categories, XDGMainCategories *main_category)
 {
     DEBUG_LOG("Listed categories: %s\n", categories);
+    *main_category = Invalid;
 
     char *reserved;
     char *token = strtok_r(categories, ";", &reserved);
@@ -335,6 +338,7 @@ static void ParseCategories(XDGDesktopEntry *entry, char *categories)
 
         if (main != Invalid)
         {
+            *main_category = main; 
             ListAdd(entry->categories, token, strlen(token) + 1);
             /*
             if (entry->category_name == NULL)
@@ -438,7 +442,7 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         }
         case Categories:
         {
-            ParseCategories(entry, value);
+            ParseCategories(entry, value, &info->main_category);
             break;
         }
         case Keywords:
@@ -519,8 +523,14 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
     fclose(fp);
     free(line);
 
+    // Strict requirments for any program that wants to displayed in the menu, similar to what kde plasma's default menu/application launcher
     if (info.icon_exists && info.application && info.has_exec && !info.no_display)
+    {
+        // Kinda hacky, should be redone using the full xdg menu spec in the future
+        //xdg_main_category_tracker[info.main_category]++;
+
         return entry;
+    }
 
     DestroyEntry(entry);
     return NULL;
@@ -529,7 +539,6 @@ static XDGDesktopEntry *ReadDesktopEntry(const char *path)
 int LoadDesktopEntries(BTreeNode **entries, const char *path)
 {
     char buffer[512];
-    //const char *path = "/usr/share/applications/";
 
     DIR *dentry_dir = opendir(path);
 
@@ -564,6 +573,14 @@ int LoadDesktopEntries(BTreeNode **entries, const char *path)
         }
     }
 
-    printf("\nFinished reading %d valid dekstop entries\n\n", count);
+    if (count > 0)
+    {
+        printf("\nFinished reading %d valid desktop entries\n\n", count);
+    }
+    else
+    {
+        printf("\nNo valid desktop entries found in %s\n\n", path);
+    }
+
     return closedir(dentry_dir);
 }

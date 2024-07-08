@@ -60,6 +60,7 @@ typedef enum
 
 typedef struct
 {
+    XDGMainCategories main_category;
     bool application;
     bool icon_exists;
     bool has_exec;
@@ -80,6 +81,8 @@ typedef struct
     char *icon;
     bool terminal_required;
 } XDGDesktopEntry;
+
+extern XDGDesktopEntry *g_terminal;
 
 void EntriesPrint(BTreeNode *entries);
 void EntryRemove(BTreeNode *entries, const char *key);

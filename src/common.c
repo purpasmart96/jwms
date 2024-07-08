@@ -66,7 +66,7 @@ void CombinePath(char *dest, size_t dest_size, const char *path1, const char *pa
     }
 }
 
-int ExpandPath(const char *path, char *expanded_path, size_t buffer_size)
+int ExpandPath(char *expanded_path, const char *path, size_t buffer_size)
 {
     if (path[0] != '~')
     {

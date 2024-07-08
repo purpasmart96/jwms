@@ -366,7 +366,7 @@ static int ParseGtkThemeValue(const char *line, char *value)
     return 0;
 }
 
-char *GetCurrentGTKIconThemeName()
+int GetCurrentGTKIconThemeName(char theme_name[])
 {
     char path[512];
 
@@ -382,7 +382,7 @@ char *GetCurrentGTKIconThemeName()
     if (fp == NULL)
     {
         fprintf(stderr, "Error opening '%s': %s\n", path, strerror(errno));
-        return NULL;
+        return -1;
     }
 
     int read = 0;
@@ -408,7 +408,7 @@ char *GetCurrentGTKIconThemeName()
                 if (strcmp(key, "gtk-icon-theme-name") == 0)
                 {
                     //DEBUG_LOG("Icon Theme: %s\n", value);
-                    icon_theme = strdup(value);
+                    strcpy(theme_name, value);
                     break;
                 }
             }
@@ -422,7 +422,7 @@ char *GetCurrentGTKIconThemeName()
     free(line);
     fclose(fp);
 
-    return icon_theme;
+    return 0;
 }
 
 static bool DirectoryMatchesSize(XDGIcon *icon, int icon_size, int icon_scale)
@@ -431,20 +431,18 @@ static bool DirectoryMatchesSize(XDGIcon *icon, int icon_size, int icon_scale)
     {
         return false;
     }
-    else if (icon->type == Fixed)
-    {
-        return icon->size == icon_size;
-    }
-    else if (icon->type == Scaled)
-    {
-        return (icon->min_size <= icon_size && icon_size <= icon->max_size);
-    }
-    else if (icon->type == Threshold)
-    {
-        return ((icon->size - icon->threshold) <= icon_size && icon_size <= (icon->size + icon->threshold));
-    }
 
-    return false;
+    switch (icon->type)
+    {
+        case Fixed:
+            return icon->size == icon_size;
+        case Scaled:
+            return icon->min_size <= icon_size && icon_size <= icon->max_size;
+        case Threshold:
+            return (icon->size - icon->threshold) <= icon_size && icon_size <= (icon->size + icon->threshold);
+        default:
+            return false;
+    }
 }
 
 // Function to calculate the Directory Size Distance
@@ -582,7 +580,9 @@ char *FindIconHelper(const char *icon, int size, int scale, const char *theme)
 
 char *FindIcon(const char *icon, int size, int scale)
 {
-    char *theme = GetCurrentGTKIconThemeName();
+    //char *theme = GetCurrentGTKIconThemeName();
+    char theme[256] = "\0";
+    int found = GetCurrentGTKIconThemeName(theme);
     char *filename = FindIconHelper(icon, size, scale, theme);
     if (filename != NULL)
     {
@@ -596,18 +596,19 @@ char *FindIcon(const char *icon, int size, int scale)
     }
 
     //return LookupFallbackIcon(icon);
-    free(theme);
+    //free(theme);
     return NULL;
 
 success:
-    free(theme);
+    //free(theme);
     return filename;
 }
 
 HashMap *FindAllIcons(List *icons, int size, int scale)
 {
-    char *theme = GetCurrentGTKIconThemeName();
-    if (theme == NULL)
+    char theme[256] = "\0";
+    int found = GetCurrentGTKIconThemeName(theme);
+    if (found != 0 || theme[0] == '\0')
     {
         printf("Failed to get GTK icon theme name!\n");
         return NULL;
@@ -639,7 +640,7 @@ HashMap *FindAllIcons(List *icons, int size, int scale)
         current = current->next;
     }
 
-    free(theme);
+    //free(theme);
     UnLoadIconTheme(icon_theme);
     UnLoadIconTheme(default_theme);
     //return LookupFallbackIcon(icon);
@@ -680,8 +681,10 @@ static void SearchAndStoreIcon(void *entry_ptr, void *args_ptr)
 
 HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
 {
-    char *theme = GetCurrentGTKIconThemeName();
-    if (theme == NULL)
+    char theme[256] = "\0";
+    int found = GetCurrentGTKIconThemeName(theme);
+    //char *theme = GetCurrentGTKIconThemeName();
+    if (found != 0 || theme[0] == '\0')
     {
         printf("Failed to get GTK icon theme name!\n");
         return NULL;
@@ -714,7 +717,7 @@ HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
 
     BSTInOrderTraverse(entries, SearchAndStoreIcon, &args);
 
-    free(theme);
+    //free(theme);
     UnLoadIconTheme(icon_theme);
     UnLoadIconTheme(default_theme);
     //return LookupFallbackIcon(icon);

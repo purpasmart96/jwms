@@ -1,6 +1,30 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define WRITE_CFG(...) \
+    fprintf(fp, __VA_ARGS__)
+
+#define GetBGColor(type, state) \
+    jwm->type##_use_global_colors ? jwm->global_bg_color_##state : jwm->type##_bg_color_##state
+
+#define GetFGColor(type, state) \
+    jwm->type##_use_global_colors ? jwm->global_fg_color_##state : jwm->type##_fg_color_##state
+
+#define GetFontName(type) \
+    jwm->type##_use_global_font ? jwm->global_font : jwm->type##_font
+
+#define GetFontAlignment(type) \
+    jwm->type##_use_global_font ? jwm->global_font_alignment : jwm->type##_font_alignment
+
+#define GetFontSize(type) \
+    jwm->type##_use_global_font ? jwm->global_font_size : jwm->type##_font_size
+
+#define GetDecorationsStyle(type) \
+    jwm->type##_use_global_decorations_style ? jwm->global_decorations_style : jwm->type##_decorations_style
+
+#define GetOutlineColor(type, state) \
+    jwm->type##_use_global_colors ? jwm->global_outline_color : jwm->type##_outline_color_##state
+
 typedef enum
 {
     Bottom,
@@ -149,6 +173,19 @@ typedef struct
     char *filemanager_name;
 } JWM;
 
-int WriteJWMConfig(BTreeNode *entries, HashMap *icons);
+int CreateJWMFolder(JWM *jwm);
+int CreateJWMStartup(JWM *jwm);
+int CreateJWMGroup(JWM *jwm);
+int CreateJWMPreferences(JWM *jwm);
+int CreateJWMIcons(JWM *jwm);
+int CreateJWMRCBackup(char *path, char *backup_path);
+int CreateJWMRCFile(JWM *jwm);
+int CreateJWMAutoStart(JWM *jwm, cfg_t *cfg);
+int CreateJWMBinds(JWM *jwm, cfg_t *cfg);
+int CreateJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons);
+int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons);
+int CreateJWMStyles(JWM *jwm);
+int LoadJWMConfig(JWM **jwm, cfg_t **cfg);
+
 
 #endif
