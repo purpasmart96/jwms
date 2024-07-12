@@ -1,5 +1,3 @@
-
-#include <pthread.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +20,36 @@
 #include "desktop_entries.h"
 #include "list.h"
 #include "config.h"
+
+
+#define VERSION "v0.1"
+
+static void About(void)
+{
+    printf("jwm-helper " VERSION " by Matt W\n");
+}
+
+static void Usage(void)
+{
+    About();
+    printf("usage: jwms [ options ]\n");
+}
+
+static void Help(void)
+{
+    printf("  --all          Generate all JWM files\n"
+            "  --autostart    Generate the JWM autostart script\n"
+            "  --binds        Generate the JWM keybinds\n"
+            "  --groups       Generate the JWM program groups\n"
+            "  --icons        Generate the JWM icon paths\n"
+            "  --jwmrc        Generate the JWM rc file\n"
+            "  --menu         Generate the JWM rootmenu\n"
+            "  --prefs        Generate the JWM preference\n"
+            "  --styles       Generate the JWM styles\n"
+            "  --tray         Generate the JWM tray\n"
+            "  --help         Display this information\n"
+            "  --version      Display version information\n");
+}
 
 static int LoadAllDesktopEntries(BTreeNode **entries)
 {
@@ -63,11 +91,8 @@ static int LoadIcons(JWM *jwm, BTreeNode *entries, HashMap **icons)
     //HashMapPrint(icons_output);
 }
 
-static int GenerateFiles(JWM *jwm, cfg_t *cfg, BTreeNode *entries, HashMap *icons)
+static int GenerateAll(JWM *jwm, cfg_t *cfg, BTreeNode *entries, HashMap *icons)
 {
-    if (CreateJWMFolder(jwm) != 0)
-        return -1;
-
     if (CreateJWMStartup(jwm) != 0)
         return -1;
 
@@ -101,58 +126,168 @@ static int GenerateFiles(JWM *jwm, cfg_t *cfg, BTreeNode *entries, HashMap *icon
     return 0;
 }
 
-
-int main()
+static int InitializeConfig(JWM **jwm, cfg_t **cfg)
 {
-    JWM *jwm;
-    cfg_t *cfg;
+    if (*cfg == NULL || *jwm == NULL)
+    {
+        if (LoadJWMConfig(jwm, cfg) != 0)
+        {
+            printf("Failed to properly load the jwms.conf file! Aborting!\n");
+            return -1;
+        }
+
+        if (CreateJWMFolder(*jwm) != 0)
+        {
+            return -1;
+        }
+
+        if (CreateJWMRCFile(*jwm) != 0)
+        {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static void CleanUp(JWM *jwm, cfg_t *cfg, HashMap *icons, BTreeNode *entries)
+{
+    if (icons)
+        HashMapDestroy(icons);
+    if (entries)
+        EntriesDestroy(entries);
+    if (jwm)
+    {
+        free(jwm->autogen_config_path);
+        free(jwm);
+    }
+    if (cfg)
+        cfg_free(cfg);
+}
+
+int HandleCmd(const char *cmd, JWM *jwm, cfg_t *cfg, BTreeNode **entries, HashMap **icons)
+{
+    if (strcmp(cmd, "--all") == 0)
+    {
+        if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
+        {
+            return EXIT_FAILURE;
+        }
+        if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
+        {
+            return EXIT_FAILURE;
+        }
+        return GenerateAll(jwm, cfg, *entries, *icons);
+    }
+    else if (strcmp(cmd, "--autostart") == 0)
+    {
+        return CreateJWMAutoStart(jwm, cfg);
+    }
+    else if (strcmp(cmd, "--binds") == 0)
+    {
+        return CreateJWMBinds(jwm, cfg);
+    }
+    else if (strcmp(cmd, "--groups") == 0)
+    {
+        return CreateJWMGroup(jwm);
+    }
+    else if (strcmp(cmd, "--icons") == 0)
+    {
+        return CreateJWMIcons(jwm);
+    }
+    else if (strcmp(cmd, "--jwmrc") == 0)
+    {
+        return CreateJWMRCFile(jwm);
+    }
+    else if (strcmp(cmd, "--menu") == 0)
+    {
+        if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
+        {
+            return EXIT_FAILURE;
+        }
+        if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
+        {
+            return EXIT_FAILURE;
+        }
+        return CreateJWMRootMenu(jwm, *entries, *icons);
+    }
+    else if (strcmp(cmd, "--prefs") == 0)
+    {
+        return CreateJWMPreferences(jwm);
+    }
+    else if (strcmp(cmd, "--styles") == 0)
+    {
+        return CreateJWMStyles(jwm);
+    }
+    else if (strcmp(cmd, "--tray") == 0)
+    {
+        if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
+        {
+            return EXIT_FAILURE;
+        }
+        if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
+        {
+            return EXIT_FAILURE;
+        }
+        return CreateJWMTray(jwm, *entries, *icons);
+    }
+
+    printf("Unknown option: %s.\n", cmd);
+    Usage();
+    Help();
+
+    return EXIT_FAILURE;
+}
+
+int main(int argc, char *argv[])
+{
+    JWM *jwm = NULL;
+    cfg_t *cfg = NULL;
     BTreeNode *entries = NULL;
     HashMap *icons = NULL;
 
-    // Load the config first
-    if (LoadJWMConfig(&jwm, &cfg) != 0)
+    if (argc < 2)
     {
-        printf("Failed to properly load the jwms.conf file! Aborting!\n");
-        return EXIT_FAILURE;
+        Usage();
+        Help();
+        return EXIT_SUCCESS;
     }
 
-    if (LoadAllDesktopEntries(&entries) != 0)
-        return EXIT_FAILURE;
-
-
-    if (LoadIcons(jwm, entries, &icons) != 0)
-        return EXIT_FAILURE;
-
-    // Test for node deletion code
-    //EntryRemove(entries, "Okular");
-
-    if (GenerateFiles(jwm, cfg, entries, icons) != 0)
+    for (int i = 1; i < argc; i++)
     {
-        return EXIT_FAILURE;
+        char *cmd = argv[i];
+
+        if (strcmp(cmd, "--help") == 0)
+        {
+            Help();
+            return EXIT_SUCCESS;
+        }
+
+        if (strcmp(cmd, "--version") == 0)
+        {
+            About();
+            return EXIT_SUCCESS;
+        }
+
+        if (InitializeConfig(&jwm, &cfg) != 0)
+        {
+            CleanUp(jwm, cfg, icons, entries);
+            return EXIT_FAILURE;
+        }
+
+        if (HandleCmd(cmd, jwm, cfg, &entries, &icons) != 0)
+        {
+            CleanUp(jwm, cfg, icons, entries);
+            return EXIT_FAILURE;
+        }
+
+        // Exit when --all is finished
+        if (strcmp(cmd, "--all") == 0)
+        {
+            break;
+        }
     }
 
-    // Hashmap test
-    //IniFile *icon_theme = IniFileLoad("/usr/share/icons/hicolor/index.theme");
-    //if (icon_theme != NULL)
-    //{
-        //IniPrintAll(icon_theme);
-    //    printf("Icon Directories: %s\n", IniGetString(icon_theme, "Icon Theme:Directories"));
-    //    IniDestroy(icon_theme);
-    //}
-
-    HashMapDestroy(icons);
-
-    //EntriesPrint(entries);
-    // Test
-    //XDGDesktopEntry *entry = EntriesSearch(entries, "Firefox Web Browser");
-    //if (entry != NULL)
-    //    printf("Search found:\n%s\n%s\n%s\n%s\n", entry->name, entry->category_name, entry->exec, entry->icon);
-
-    EntriesDestroy(entries);
-
-    free(jwm->autogen_config_path);
-    free(jwm);
-    cfg_free(cfg);
-
-    return 0;
+    CleanUp(jwm, cfg, icons, entries);
+    return EXIT_SUCCESS;
 }
