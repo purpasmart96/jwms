@@ -28,4 +28,10 @@ Requires libconfuse and libbsd
 
 Run `make` in the project root directory to create the binary
 
-You should be able run the program via `./jwms`
+You should now be able run the program via `./jwms --all` which creates all files needed for JWM
+
+You can also specify what parts to generate or not by doing `./jwms --help`
+
+For example, doing `./jwms --menu` will only create the JWM root menu file.
+
+You can add as many arguments as you want, which means you can do `./jwms --menu --binds --icons --tray` which creates the root menu, keybinds, icon paths, and the tray while ignoring the rest.
