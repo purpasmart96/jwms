@@ -17,7 +17,6 @@
 #include "darray.h"
 #include "hashing.h"
 #include "list.h"
-//#include "ini.h"
 #include "icons.h"
 #include "desktop_entries.h"
 

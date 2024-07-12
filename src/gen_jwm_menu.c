@@ -84,9 +84,8 @@ static void WriteMenuCategory(void *entry_ptr, void *args_ptr)
 
 static void WriteJWMRootMenuCategoryList(BTreeNode *entries, HashMap *icons, FILE *fp, MenuCategory *category)
 {
-    char *category_icon = FindIcon(category_icons[category->value], 32, 1);
+    const char *category_icon = HashMapGet(icons, category_icons[category->value]); //FindIcon(category_icons[category->value], 32, 1);
     WRITE_CFG("       <Menu icon=\"%s\" label=\"%s\">\n", category_icon, category->menu_name);
-    free(category_icon);
  
     CategoryArgs args =
     {
@@ -128,6 +127,9 @@ int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
 
     strlcpy(path, jwm->autogen_config_path, sizeof(path));
     strlcat(path, fname, sizeof(path));
+
+    // This is ugly, this should not be called here. g_terminal should be set after all desktop entries are loaded.
+    g_terminal = GetCoreProgram(entries, TerminalEmulator, jwm->terminal_name);
 
     FILE *fp = fopen(path, "w");
 
@@ -181,8 +183,14 @@ int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
         }
     }
 
-    WRITE_CFG("        <Restart label=\"Refresh\" icon=\"view-refresh\"/>\n");
-    WRITE_CFG("        <Exit label=\"Logout\" icon=\"system-log-out\"/>\n");
+    //const char *search_icon = HashMapGet(icons, "system-search");
+    const char *refresh_icon = HashMapGet(icons, "view-refresh"); 
+    const char *logout_icon = HashMapGet(icons, "system-log-out");
+
+    //WRITE_CFG("        <Program icon=\"%s\" label=\"%s\">%s</Program>\n", search_icon, "Search", "rofi -show-icons -show drun");
+    WRITE_CFG("        <Restart label=\"Refresh\" icon=\"%s\"/>\n", refresh_icon);
+    WRITE_CFG("        <Exit label=\"Logout\" icon=\"%s\"/>\n", logout_icon);
+
     // Let's assume were using systemd for now
     //WRITE_CFG("        <Program icon=\"system-reboot\" label=\"Restart\">systemctl reboot</Program>\n");
     //WRITE_CFG("        <Program icon=\"system-shutdown\" label=\"Shutdown\">systemctl poweroff</Program>\n");

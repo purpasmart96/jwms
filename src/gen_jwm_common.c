@@ -112,6 +112,8 @@ int CreateJWMGroup(JWM *jwm)
     strlcpy(path, jwm->autogen_config_path, sizeof(path));
     strlcat(path, fname, sizeof(path));
 
+    printf("Generating JWM groups!\n");
+
     FILE *fp = fopen(path, "w");
 
     if (fp == NULL)

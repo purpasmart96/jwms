@@ -647,6 +647,25 @@ HashMap *FindAllIcons(List *icons, int size, int scale)
     return valid_icons;
 }
 
+static void SearchAndStoreIconHelper(HashMap *icons, IconTheme *icon_theme, IconTheme *default_theme, const char *icon, int size, int scale)
+{
+    char *filename = LookupIcon(icon_theme, icon, size, scale);
+    if (filename != NULL)
+    {
+        HashMapInsert(icons, icon, filename);
+    }
+    else
+    {
+        filename = LookupIcon(default_theme, icon, size, scale);
+        if (filename != NULL)
+        {
+            HashMapInsert(icons, icon, filename);
+        }
+    }
+
+    free(filename);
+}
+
 typedef struct
 {
     IconTheme *icon_theme;
@@ -661,22 +680,8 @@ static void SearchAndStoreIcon(void *entry_ptr, void *args_ptr)
     XDGDesktopEntry *entry = entry_ptr;
     Args *args = args_ptr;
     const char *icon = entry->icon;
-    
-    char *filename = LookupIcon(args->icon_theme, icon, args->size, args->scale);
-    if (filename != NULL)
-    {
-        HashMapInsert(args->valid_icons, icon, filename);
-    }
-    else
-    {
-        filename = LookupIcon(args->default_theme, icon, args->size, args->scale);
-        if (filename != NULL)
-        {
-            HashMapInsert(args->valid_icons, icon, filename);
-        }
-    }
 
-    free(filename);
+    SearchAndStoreIconHelper(args->valid_icons, args->icon_theme, args->default_theme, icon, args->size, args->scale);
 }
 
 HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
@@ -715,7 +720,25 @@ HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
         .scale = scale        
     };
 
+    // Desktop entry icons
     BSTInOrderTraverse(entries, SearchAndStoreIcon, &args);
+
+    // Extra icons, should put this in a for loop
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-multimedia", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-development", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-education", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-games", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-graphics", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-internet", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-office", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-science", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "preferences-desktop", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-system", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-utilities", size, scale);
+
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "system-search", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "view-refresh", size, scale);
+    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "system-log-out", size, scale);
 
     //free(theme);
     UnLoadIconTheme(icon_theme);

@@ -73,6 +73,8 @@ int CreateJWMAutoStart(JWM *jwm, cfg_t *cfg)
     strlcpy(path, jwm->autogen_config_path, sizeof(path));
     strlcat(path, fname, sizeof(path));
 
+    printf("Generating autostart script!\n");
+
     FILE *fp = fopen(path, "w");
 
     if (fp == NULL)
