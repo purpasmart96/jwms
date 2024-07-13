@@ -129,23 +129,20 @@ static int GenerateAll(JWM *jwm, cfg_t *cfg, BTreeNode *entries, HashMap *icons)
 
 static int InitializeConfig(JWM **jwm, cfg_t **cfg)
 {
-    if (*cfg == NULL || *jwm == NULL)
+    if (*cfg != NULL && *jwm != NULL)
     {
-        if (LoadJWMConfig(jwm, cfg) != 0)
-        {
-            printf("Failed to properly load the jwms.conf file! Aborting!\n");
-            return -1;
-        }
+        return 0;
+    }
 
-        if (CreateJWMFolder(*jwm) != 0)
-        {
-            return -1;
-        }
+    if (LoadJWMConfig(jwm, cfg) != 0)
+    {
+        printf("Failed to properly load the jwms.conf file! Aborting!\n");
+        return -1;
+    }
 
-        if (CreateJWMRCFile(*jwm) != 0)
-        {
-            return -1;
-        }
+    if (CreateJWMFolder(*jwm) != 0)
+    {
+        return -1;
     }
 
     return 0;
