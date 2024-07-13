@@ -50,6 +50,8 @@ int CreateJWMBinds(JWM *jwm, cfg_t *cfg)
     strlcpy(path, jwm->autogen_config_path, sizeof(path));
     strlcat(path, fname, sizeof(path));
 
+    printf("Generating JWM bindings!\n");
+
     FILE *fp = fopen(path, "w");
 
     if (fp == NULL)
@@ -74,7 +76,14 @@ int CreateJWMBinds(JWM *jwm, cfg_t *cfg)
         int num_mods = cfg_size(keybind, "mods");
         const char *title = cfg_title(keybind);
         printf("keybind %u: %s\n", i + 1, title);
+        const char *key = cfg_getstr(keybind, "key");
         const char *cmd = cfg_getstr(keybind, "command");
+
+        if (key == NULL)
+        {
+            printf("key for keybind %s was NULL! Skipping keybind...\n", title);
+            continue;
+        }
 
         if (cmd == NULL)
         {
@@ -82,7 +91,7 @@ int CreateJWMBinds(JWM *jwm, cfg_t *cfg)
             continue;
         }
 
-        printf("command: %s\n", cmd);
+        printf("key: %s\n", key);
 
         for (int j = 0; j < num_mods; j++)
         {
@@ -99,8 +108,7 @@ int CreateJWMBinds(JWM *jwm, cfg_t *cfg)
             strlcat(keymods, out_keymod, sizeof(keymods));
         }
 
-        char *key = cfg_getstr(keybind, "key");
-        printf("key: %s\n\n", key);
+        printf("command: %s\n\n", cmd);
 
         if (!num_mods)
         {

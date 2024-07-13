@@ -96,7 +96,7 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
 	cfg_opt_t keybind_opts[] =
     {
         CFG_STR_LIST("mods", NULL, CFGF_NONE),
-        CFG_STR("key", "T", CFGF_NONE),
+        CFG_STR("key", NULL, CFGF_NONE),
         CFG_STR("command", NULL, CFGF_NONE),
 		CFG_END()
 	};
