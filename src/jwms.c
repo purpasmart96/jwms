@@ -32,12 +32,13 @@ static void About(void)
 static void Usage(void)
 {
     About();
-    printf("usage: jwms [ options ]\n");
+    printf("Usage: jwms [option...]\n\n");
 }
 
 static void Help(void)
 {
-    printf("  --all          Generate all JWM files\n"
+    printf("Options:\n"
+            "  --all          Generate all JWM files\n"
             "  --autostart    Generate the JWM autostart script\n"
             "  --binds        Generate the JWM keybinds\n"
             "  --groups       Generate the JWM program groups\n"
