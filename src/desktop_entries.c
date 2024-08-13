@@ -16,7 +16,6 @@
 
 #include "desktop_entries.h"
 
-
 static const Pair xdg_keys[] =
 {
     {"Type",                 Type                 },
@@ -97,40 +96,6 @@ static XDGAdditionalCategories GetXDGAdditionalCategoryType(const char *category
     }
 
     return IgnoredOrInvalid;
-}
-
-static bool StringToBool(char *input)
-{
-    const int max_length = 6;
-    int length = strlen(input);
-
-    if (input == NULL || length > max_length)
-        return false;
-
-    char temp[6];
-    for (size_t i = 0; input[i]; i++)
-    {
-        temp[i] = tolower(input[i]);
-    }
-
-    temp[length] = '\0';
-
-    return strcmp(temp, "true") == 0 || strcmp(temp, "1") == 0;
-}
-
-static void StripTrailingWSpace(char *str)
-{
-    if (str == NULL)
-        return;
-
-    // Remove trailing whitespace
-    int length = strlen(str);
-    while (length > 0 && isspace(str[length - 1]))
-    {
-        length--;
-    }
-
-    str[length] = '\0';
 }
 
 static XDGDesktopEntry *CreateEmptyEntry()

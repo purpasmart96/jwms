@@ -1,12 +1,48 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <bsd/string.h>
 
 #include "common.h"
 
+
+bool StringToBool(char *input)
+{
+    const int max_length = 6;
+    int length = strlen(input);
+
+    if (input == NULL || length > max_length)
+        return false;
+
+    char temp[6];
+    for (size_t i = 0; input[i]; i++)
+    {
+        temp[i] = tolower(input[i]);
+    }
+
+    temp[length] = '\0';
+
+    return strcmp(temp, "true") == 0 || strcmp(temp, "1") == 0;
+}
+
+void StripTrailingWSpace(char *str)
+{
+    if (str == NULL)
+        return;
+
+    // Remove trailing whitespace
+    int length = strlen(str);
+    while (length > 0 && isspace(str[length - 1]))
+    {
+        length--;
+    }
+
+    str[length] = '\0';
+}
 
 void CombinePath(char *dest, size_t dest_size, const char *path1, const char *path2)
 {
