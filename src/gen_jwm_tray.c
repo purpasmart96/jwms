@@ -33,7 +33,9 @@ static void AddTraySpacing(JWM *jwm, FILE *fp, int spacing)
 static void WriteJWMTray(JWM *jwm, BTreeNode *entries, FILE *fp, HashMap *icons)
 {
     // Get Terminal
-    g_terminal = GetCoreProgram(entries, TerminalEmulator, jwm->terminal_name);
+    if (g_terminal == NULL)
+        g_terminal = GetCoreProgram(entries, TerminalEmulator, jwm->terminal_name);
+
     if (g_terminal != NULL)
     {
         const char *icon = HashMapGet(icons, g_terminal->icon);
@@ -155,7 +157,7 @@ int CreateJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
     char *show_desktop_icon = FindIcon("desktop", jwm->global_preferred_icon_size, 1);
     AddTraySpacing(jwm, fp, jwm->tray_icon_spacing);
     WriteJWMTray(jwm, entries, fp, icons);
-    WRITE_CFG("       <TaskList labeled=\"%s\" maxwidth=\"%d\"/>\n", "true", 256);
+    WRITE_CFG("       <TaskList labeled=\"%s\" labelpos=\"%s\" maxwidth=\"%d\"/>\n", "true", "right", 256);
     //WRITE_CFG("       <Spacer height=\"%d\"/>\n", 4);
     AddTraySpacing(jwm, fp, 4);
     //WRITE_CFG("       <Spacer/>\n");
