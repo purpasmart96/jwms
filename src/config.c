@@ -37,6 +37,51 @@ static TrayPositions GetTrayPosition(const char *tpos)
     return Bottom;
 }
 
+static void ParseTrays(JWM *jwm, cfg_t *cfg)
+{
+    int n = cfg_size(cfg, "tray");
+	printf("\nFound %d tray(s):\n", n);
+
+    if (n > MAX_TRAYS)
+    {
+        printf("Too many trays! Ignoring extra trays!\n");
+        n = MAX_TRAYS;
+    }
+
+    jwm->num_trays = n;
+
+	for (int i = 0; i < n; i++)
+    {
+        Tray *curr_tray = &jwm->trays[i];
+		cfg_t *tray = cfg_getnsec(cfg, "tray", i);
+
+        const char *title = cfg_title(tray);
+        printf("tray %u: %s\n", i + 1, title);
+
+        const char *tpos = cfg_getstr(tray, "position");
+        curr_tray->position = GetTrayPosition(tpos);
+        curr_tray->autohide = cfg_getbool(tray, "autohide");
+        curr_tray->autohide_delay = cfg_getint(tray, "autohide_delay");
+        curr_tray->thickness = cfg_getint(tray, "thickness");
+        curr_tray->spacing = cfg_getint(tray, "spacing");
+        curr_tray->menu_button_enabled = cfg_getbool(tray, "menu_button_enabled");
+
+        curr_tray->num_programs = cfg_size(tray, "programs");
+        curr_tray->tasklist_enabled = cfg_getbool(tray, "tasklist_enabled");
+        curr_tray->tasklist_labeled = cfg_getbool(tray, "tasklist_labeled");
+        curr_tray->tasklist_label_position = cfg_getstr(tray, "tasklist_label_position");
+        curr_tray->pager_enabled = cfg_getbool(tray, "pager_enabled");
+        curr_tray->systray_enabled = cfg_getbool(tray, "systray_enabled");
+        curr_tray->clock_enabled = cfg_getbool(tray, "clock_enabled");
+
+        for (int j = 0; j < curr_tray->num_programs; j++)
+        {
+            curr_tray->programs[j] = cfg_getnstr(tray,"programs", j);
+            printf("program %d: %s\n", j, curr_tray->programs[j]);
+        }
+	}
+}
+
 static float GetValidOpacity(float opacity)
 {
     return CLAMP(opacity, 0.0, 1.0);
@@ -108,6 +153,24 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
         CFG_BOOL("restart_kill", false, CFGF_NONE),
         CFG_STR("program", NULL, CFGF_NONE),
         CFG_STR("args", NULL, CFGF_NONE),
+		CFG_END()
+	};
+
+	cfg_opt_t tray_opts[] =
+    {
+        CFG_STR("position", "bottom", CFGF_NONE),
+        CFG_BOOL("autohide", false, CFGF_NONE),
+        CFG_INT("autohide_delay", 1000, CFGF_NONE),
+        CFG_INT("thickness", 32, CFGF_NONE),
+        CFG_INT("spacing", 4, CFGF_NONE),
+        CFG_BOOL("menu_button_enabled", false, CFGF_NONE),
+        CFG_STR_LIST("programs", NULL, CFGF_NONE),
+        CFG_BOOL("tasklist_enabled", false, CFGF_NONE),
+        CFG_BOOL("tasklist_labeled", false, CFGF_NONE),
+        CFG_STR("tasklist_label_position", "right", CFGF_NONE),
+        CFG_BOOL("pager_enabled", false, CFGF_NONE),
+        CFG_BOOL("systray_enabled", false, CFGF_NONE),
+        CFG_BOOL("clock_enabled", false, CFGF_NONE),
 		CFG_END()
 	};
 
@@ -196,7 +259,6 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
         CFG_BOOL("tray_use_global_colors", true, CFGF_NONE),
         CFG_BOOL("tray_use_global_font", true, CFGF_NONE),
         CFG_BOOL("tray_use_menu_icon", false, CFGF_NONE),
-        CFG_BOOL("tray_use_systray", true, CFGF_NONE),
         CFG_BOOL("tray_outline_enabled", false, CFGF_NONE),
         CFG_INT("tray_systray_size", 24, CFGF_NONE),
         CFG_INT("tray_systray_spacing", 4, CFGF_NONE),
@@ -207,16 +269,13 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
         CFG_STR("tray_fg_color_inactive", "#CCCCCC", CFGF_NONE),
         CFG_STR("tray_outline_color_active", "#FFFFFF", CFGF_NONE),
         CFG_STR("tray_outline_color_inactive", "#FFFFFF", CFGF_NONE),
-        CFG_STR("tray_position", "bottom", CFGF_NONE),
-        CFG_BOOL("tray_autohide", false, CFGF_NONE),
         CFG_STR("tray_menu_icon", "jwm-blue", CFGF_NONE),
         CFG_STR("tray_menu_text", "Menu", CFGF_NONE),
-        CFG_INT("tray_height", 32, CFGF_NONE),
-        CFG_INT("tray_icon_spacing", 4, CFGF_NONE),
         CFG_FLOAT("tray_opacity", 0.95, CFGF_NONE),
         CFG_STR("tray_font", "Sans", CFGF_NONE),
         CFG_STR("tray_font_alignment", "center", CFGF_NONE),
         CFG_INT("tray_font_size", 10, CFGF_NONE),
+        CFG_SEC("tray", tray_opts, CFGF_MULTI | CFGF_TITLE),
 
         CFG_BOOL("tasklist_use_global_decorations_style", true, CFGF_NONE),
         CFG_BOOL("tasklist_use_global_colors", true, CFGF_NONE),
@@ -328,12 +387,13 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
     (*jwm)->menu_font_alignment = cfg_getstr(*cfg, "menu_font_alignment");
     (*jwm)->menu_font_size = cfg_getint(*cfg, "menu_font_size");
 
+    ParseTrays(*jwm, *cfg);
+
     (*jwm)->tray_use_global_decorations_style = cfg_getbool(*cfg, "tray_use_global_decorations_style");
     (*jwm)->tray_use_global_colors = cfg_getbool(*cfg, "tray_use_global_colors");
     (*jwm)->tray_use_global_font = cfg_getbool(*cfg, "tray_use_global_font");
     (*jwm)->tray_use_menu_icon = cfg_getbool(*cfg, "tray_use_menu_icon");
     (*jwm)->tray_outline_enabled = cfg_getbool(*cfg, "tray_outline_enabled");
-    (*jwm)->tray_use_systray = cfg_getbool(*cfg, "tray_use_systray");
     (*jwm)->tray_systray_size = cfg_getint(*cfg, "tray_systray_size");
     (*jwm)->tray_systray_spacing = cfg_getint(*cfg, "tray_systray_spacing");
     (*jwm)->tray_decorations_style = cfg_getstr(*cfg, "tray_decorations_style");
@@ -343,13 +403,8 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
     (*jwm)->tray_fg_color_inactive = cfg_getstr(*cfg, "tray_fg_color_inactive");
     (*jwm)->tray_outline_color_active = cfg_getstr(*cfg, "tray_outline_color_active");
     (*jwm)->tray_outline_color_inactive = cfg_getstr(*cfg, "tray_outline_color_inactive");
-    (*jwm)->tray_auto_hide = cfg_getbool(*cfg, "tray_autohide");
-    const char *tpos = cfg_getstr(*cfg, "tray_position");
-    (*jwm)->tray_pos = GetTrayPosition(tpos);
     (*jwm)->tray_menu_icon = cfg_getstr(*cfg, "tray_menu_icon");
     (*jwm)->tray_menu_text = cfg_getstr(*cfg, "tray_menu_text");
-    (*jwm)->tray_height = cfg_getint(*cfg, "tray_height");
-    (*jwm)->tray_icon_spacing = cfg_getint(*cfg, "tray_icon_spacing");
     (*jwm)->tray_opacity = GetValidOpacity(cfg_getfloat(*cfg, "tray_opacity"));
     (*jwm)->tray_font = cfg_getstr(*cfg, "tray_font");
     (*jwm)->tray_font_alignment = cfg_getstr(*cfg, "tray_font_alignment");

@@ -44,6 +44,31 @@ typedef enum
     PopupStyle,
 } Styles;
 
+#define MAX_TRAYS 6
+#define MAX_TRAY_PROGRAMS 48
+
+typedef struct
+{
+    TrayPositions position;
+    bool autohide;
+    int autohide_delay;
+    int thickness;
+    int spacing;
+
+    bool menu_button_enabled;
+
+    char *programs[MAX_TRAY_PROGRAMS];
+    int num_programs;
+
+    bool tasklist_enabled;
+    bool tasklist_labeled;
+    char *tasklist_label_position;
+
+    bool pager_enabled;
+    bool systray_enabled;
+    bool clock_enabled;
+} Tray;
+
 typedef struct
 {
     char *global_decorations_style;
@@ -61,15 +86,10 @@ typedef struct
     bool tray_use_global_colors;
     bool tray_use_global_font;
     bool tray_use_menu_icon;
-    bool tray_use_systray;
-    TrayPositions tray_pos;
-    int tray_height;
     int tray_systray_size;
     int tray_systray_spacing;
     char *tray_menu_icon;
     char *tray_menu_text;
-    bool tray_auto_hide;
-    int tray_icon_spacing;
     bool tray_outline_enabled;
     char *tray_decorations_style;
     char *tray_bg_color_active;
@@ -82,6 +102,9 @@ typedef struct
     char *tray_font;
     char *tray_font_alignment;
     int tray_font_size;
+
+    Tray trays[MAX_TRAYS];
+    int num_trays;
 
     bool tasklist_use_global_decorations_style;
     bool tasklist_use_global_colors;
@@ -183,7 +206,7 @@ int CreateJWMRCFile(JWM *jwm);
 int CreateJWMAutoStart(JWM *jwm, cfg_t *cfg);
 int CreateJWMBinds(JWM *jwm, cfg_t *cfg);
 int CreateJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons);
-int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons);
+int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons, const char *xdg_menu_path);
 int CreateJWMStyles(JWM *jwm);
 int LoadJWMConfig(JWM **jwm, cfg_t **cfg);
 

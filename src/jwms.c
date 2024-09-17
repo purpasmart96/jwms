@@ -54,6 +54,7 @@ static void Help(void)
 
 static int LoadAllDesktopEntries(BTreeNode **entries)
 {
+    // These paths should not be hardcoded, but they work for now
     const char *default_app_dir = "/usr/share/applications/";
     const char *user_app_dir = "~/.local/share/applications/";
 
@@ -103,7 +104,7 @@ static int GenerateAll(JWM *jwm, cfg_t *cfg, BTreeNode *entries, HashMap *icons)
     if (CreateJWMTray(jwm, entries, icons) != 0)
         return -1;
 
-    if (CreateJWMRootMenu(jwm, entries, icons) !=0)
+    if (CreateJWMRootMenu(jwm, entries, icons, NULL) != 0)
         return -1;
 
     if (CreateJWMStyles(jwm) != 0)
@@ -207,7 +208,7 @@ int HandleCmd(const char *cmd, JWM *jwm, cfg_t *cfg, BTreeNode **entries, HashMa
         {
             return EXIT_FAILURE;
         }
-        return CreateJWMRootMenu(jwm, *entries, *icons);
+        return CreateJWMRootMenu(jwm, *entries, *icons, NULL);
     }
     else if (strcmp(cmd, "--prefs") == 0)
     {

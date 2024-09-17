@@ -19,7 +19,7 @@ BIN:=jwms
 REL_BIN:=$(REL_DIR)/$(BIN)
 DBG_BIN:=$(DBG_DIR)/$(BIN)
 
-.PHONY: all clean release debug
+.PHONY: all clean release debug run
 
 all: release
 
@@ -42,6 +42,9 @@ $(DBG_BIN): $(DBG_OBJS)
 $(DBG_DIR)/%.o: src/%.c
 	@mkdir -p $(DBG_DIR)
 	$(CC) $(DBG_FLAGS) $(CFLAGS) -c -o $@ $<
+
+run:
+	./jwms --all
 
 clean:
 	@rm -rf $(BUILD_DIR)

@@ -120,7 +120,13 @@ static void CountCategories(void *ptr, void *args_ptr)
     }
 }
 
-int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
+// Stubbed out
+int CreateJWMRootMenuWithXDGMenu(JWM *jwm, BTreeNode *entries, HashMap *icons, FILE *fp, const char *xdg_menu_path)
+{
+    return 0;
+}
+
+int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons, const char *xdg_menu_path)
 {
     char path[512];
     const char *fname = "menu";
@@ -129,7 +135,8 @@ int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
     strlcat(path, fname, sizeof(path));
 
     // This is ugly, this should not be called here. g_terminal should be set after all desktop entries are loaded.
-    g_terminal = GetCoreProgram(entries, TerminalEmulator, jwm->terminal_name);
+    if (g_terminal == NULL)
+        g_terminal = GetCoreProgram(entries, TerminalEmulator, jwm->terminal_name);
 
     FILE *fp = fopen(path, "w");
 
@@ -137,6 +144,11 @@ int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons)
     {
         fprintf(stderr, "Error opening '%s': %s\n", path, strerror(errno));
         return -1;
+    }
+
+    if (xdg_menu_path != NULL)
+    {
+        return CreateJWMRootMenuWithXDGMenu(jwm, entries, icons, fp, xdg_menu_path);
     }
 
     printf("Writing to %s\n", path);

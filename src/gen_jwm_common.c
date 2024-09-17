@@ -159,7 +159,7 @@ int CreateJWMPreferences(JWM *jwm)
     // Start of the prefs xml file
     WRITE_CFG("<?xml version=\"1.0\"?>\n");
     WRITE_CFG("<JWM>\n");
-    if (jwm->tray_pos < Left)
+    if (jwm->trays[0].position < Left)
     {
         WRITE_CFG("   <Desktops width=\"%d\" height=\"%d\">\n", jwm->desktop_workspaces, 1);
     }

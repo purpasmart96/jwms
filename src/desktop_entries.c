@@ -181,7 +181,8 @@ void EntryRemove(BTreeNode *entries, const char *key)
 
 XDGDesktopEntry *EntriesSearch(BTreeNode *entries, const char *key)
 {
-    return BSTSearchNode(entries, key, NameCmp2)->data;
+    BTreeNode *node = BSTSearchNode(entries, key, NameCmp2);
+    return node != NULL ? node->data : NULL;
 }
 
 void EntriesDestroy(BTreeNode *entries)
@@ -189,14 +190,14 @@ void EntriesDestroy(BTreeNode *entries)
     BSTDestroy(&entries, DestroyEntry);
 }
 
-static XDGDesktopEntry *InorderTraverseProgramSearch(BTreeNode *node, XDGAdditionalCategories extra_category, const char *base_name, XDGDesktopEntry **fallback)
+static XDGDesktopEntry *InorderTraverseProgramSearch(BTreeNode *node, XDGAdditionalCategories extra_category, const char *name, XDGDesktopEntry **fallback)
 {
     if (node == NULL)
     {
         return NULL;
     }
 
-    XDGDesktopEntry *result = InorderTraverseProgramSearch(node->left, extra_category, base_name, fallback);
+    XDGDesktopEntry *result = InorderTraverseProgramSearch(node->left, extra_category, name, fallback);
     if (result != NULL)
     {
         return result;
@@ -205,37 +206,77 @@ static XDGDesktopEntry *InorderTraverseProgramSearch(BTreeNode *node, XDGAdditio
     XDGDesktopEntry *entry = node->data;
     if (entry->extra_category == extra_category)
     {
-        if (strstr(entry->exec, base_name) != NULL)
+        char *exec_basename = basename(entry->exec);
+        if (strcmp(exec_basename, name) == 0)
         {
             return entry;
         }
-        DEBUG_LOG("Setting %s as an fallback since %s does not match %s\n", entry->exec, entry->exec, base_name);
+
+        if (strstr(exec_basename, name) != NULL)
+        {
+            return entry;
+        }
+        DEBUG_LOG("Setting %s as an fallback since %s does not match %s\n", entry->exec, entry->exec, name);
         *fallback = entry;
     }
 
-    return InorderTraverseProgramSearch(node->right, extra_category, base_name, fallback);
+    return InorderTraverseProgramSearch(node->right, extra_category, name, fallback);
 }
 
-XDGDesktopEntry *GetCoreProgram(BTreeNode *root, XDGAdditionalCategories extra_category, char *name)
+XDGDesktopEntry *GetCoreProgram(BTreeNode *root, XDGAdditionalCategories extra_category, const char *name)
 {
-    char *base_name = basename(strdup(name)); 
     XDGDesktopEntry *fallback = NULL;
 
-    XDGDesktopEntry *result = InorderTraverseProgramSearch(root, extra_category, base_name, &fallback);
+    XDGDesktopEntry *result = InorderTraverseProgramSearch(root, extra_category, name, &fallback);
     
     if (result == NULL)
     {
         if (fallback == NULL)
         {
-            printf("Couldn't find %s, And no fallback available! Quitting program...\n", base_name);
+            printf("Couldn't find %s, And no fallback available! Quitting program...\n", name);
             exit(1);
         }
 
-        printf("Couldn't find %s. Using %s as a fallback\n", base_name, fallback->exec);
+        printf("Couldn't find %s. Using %s as a fallback\n", name, fallback->exec);
     }
 
-    free(base_name);
     return result ? result : fallback;
+}
+
+// DRY principle violated here, should find a better way of searching programs
+static XDGDesktopEntry *InorderTraverseProgramSearch2(BTreeNode *node, const char *name)
+{
+    if (node == NULL)
+    {
+        return NULL;
+    }
+
+    XDGDesktopEntry *result = InorderTraverseProgramSearch2(node->left, name);
+    if (result != NULL)
+    {
+        return result;
+    }
+
+    XDGDesktopEntry *entry = node->data;
+    char *exec_basename = basename(entry->exec);
+    if (strcmp(exec_basename, name) == 0)
+    {
+        return entry;
+    }
+
+    return InorderTraverseProgramSearch2(node->right, name);
+}
+
+XDGDesktopEntry *GetProgram(BTreeNode *root, const char *name)
+{
+    XDGDesktopEntry *result = InorderTraverseProgramSearch2(root, name);
+    
+    if (result == NULL)
+    {
+        printf("Couldn't find program %s!\n", name);
+    }
+
+    return result ? result : NULL;
 }
 
 static void ParseExec(XDGDesktopEntry *entry, const char *exec)
