@@ -133,13 +133,19 @@ void HashMapInsert(HashMap *map, const char *key, const char *value)
 
     while (map->entries[index] != NULL)
     {
-        if (map->entries[index]->hash == hash && strcmp(map->entries[index]->key, key) == 0)
+        // Compare precomputed hashes
+        if (map->entries[index]->hash == hash)
         {
-            free(map->entries[index]->value);
-            map->entries[index]->value = temp_value;
-            return;
+            // If hashes match, compare keys
+            if (strcmp(map->entries[index]->key, key) == 0)
+            {
+                // Dupe found, update value and finish
+                free(map->entries[index]->value);
+                map->entries[index]->value = temp_value;
+                return;
+            }
         }
-        // Open addressing
+        // Handle collision using open addressing
         index = (index + 1) & (map->capacity - 1);
     }
 
@@ -165,13 +171,19 @@ void HashMapInsert2(HashMap2 *map, const char *key, void *value)
 
     while (map->entries[index] != NULL)
     {
-        if (map->entries[index]->hash == hash && strcmp(map->entries[index]->key, key) == 0)
+        // Compare precomputed hashes
+        if (map->entries[index]->hash == hash)
         {
-            map->DestroyCallback(map->entries[index]->value);
-            map->entries[index]->value = value;
-            return;
+            // If hashes match, compare keys
+            if (strcmp(map->entries[index]->key, key) == 0)
+            {
+                // Dupe found, update value and finish
+                map->DestroyCallback(map->entries[index]->value);
+                map->entries[index]->value = value;
+                return;
+            }
         }
-        // Open addressing
+        // Handle collision using open addressing
         index = (index + 1) & (map->capacity - 1);
     }
 
@@ -194,7 +206,6 @@ void HashMapInsertWithSection(HashMap *map, const char *section, const char *key
 const char *HashMapGet(HashMap *map, const char *key)
 {
     size_t hash = Hash(key);
-    //size_t index = hash % map->capacity;
     size_t index = hash & (map->capacity - 1);
 
     while (map->entries[index] != NULL)
@@ -203,7 +214,7 @@ const char *HashMapGet(HashMap *map, const char *key)
         {
             return map->entries[index]->value;
         }
-        // Open addressing
+        // Handle collision using open addressing
         index = (index + 1) & (map->capacity - 1);
     }
 
@@ -222,7 +233,7 @@ void *HashMapGet2(HashMap2 *map, const char *key)
         {
             return map->entries[index]->value;
         }
-        // Open addressing
+        // Handle collision using open addressing
         index = (index + 1) & (map->capacity - 1);
     }
 
