@@ -133,19 +133,17 @@ void HashMapInsert(HashMap *map, const char *key, const char *value)
 
     while (map->entries[index] != NULL)
     {
-        // Compare precomputed hashes
-        if (map->entries[index]->hash == hash)
+        // Compare precomputed hash and compare keys
+        // The compiler (GCC) will optimize this into a nested if statement
+        // It will first check the hash and only compare the keys if the hash matches
+        if (map->entries[index]->hash == hash && strcmp(map->entries[index]->key, key) == 0)
         {
-            // If hashes match, compare keys
-            if (strcmp(map->entries[index]->key, key) == 0)
-            {
-                // Dupe found, update value and finish
-                free(map->entries[index]->value);
-                map->entries[index]->value = temp_value;
-                return;
-            }
+            // Dupe found, update value and finish
+            free(map->entries[index]->value);
+            map->entries[index]->value = temp_value;
+            return;
         }
-        // Handle collision using open addressing
+        // Handle collision using Open Addressing (Linear Probing)
         index = (index + 1) & (map->capacity - 1);
     }
 
@@ -171,17 +169,15 @@ void HashMapInsert2(HashMap2 *map, const char *key, void *value)
 
     while (map->entries[index] != NULL)
     {
-        // Compare precomputed hashes
-        if (map->entries[index]->hash == hash)
+        // Compare precomputed hash and compare keys
+        // The compiler (GCC) will optimize this into a nested if statement
+        // It will first check the hash and only compare the keys if the hash matches
+        if (map->entries[index]->hash == hash && strcmp(map->entries[index]->key, key) == 0)
         {
-            // If hashes match, compare keys
-            if (strcmp(map->entries[index]->key, key) == 0)
-            {
-                // Dupe found, update value and finish
-                map->DestroyCallback(map->entries[index]->value);
-                map->entries[index]->value = value;
-                return;
-            }
+            // Dupe found, update value and finish
+            map->DestroyCallback(map->entries[index]->value);
+            free(map->entries[index]->value);
+            return;
         }
         // Handle collision using open addressing
         index = (index + 1) & (map->capacity - 1);
