@@ -315,6 +315,7 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
     (*jwm)->global_fg_color_active = cfg_getstr(*cfg, "global_fg_color_active");
     (*jwm)->global_fg_color_inactive = cfg_getstr(*cfg, "global_fg_color_inactive");
     (*jwm)->global_outline_color = cfg_getstr(*cfg, "global_outline_color");
+    (*jwm)->global_preferred_icon_size = cfg_getint(*cfg, "global_preferred_icon_size");
     (*jwm)->global_font = cfg_getstr(*cfg, "global_font");
     (*jwm)->global_font_alignment = cfg_getstr(*cfg, "global_font_alignment");
     (*jwm)->global_font_size = cfg_getint(*cfg, "global_font_size");
