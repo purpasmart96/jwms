@@ -18,6 +18,27 @@ typedef enum
 } IconContext;
 
 /*
+typedef struct
+{
+    uint32_t themeKey;
+    bool supportsSvg;
+
+    char *userTheme;
+    char *systemTheme;
+    DArray *iconDirs;
+    HashMap *themeList;
+} IconLoader;
+
+typedef struct 
+{
+    char *contentDir;
+    DArray keyList;
+    DArray parents;
+    bool valid;
+} IconTheme;
+*/
+
+/*
 typedef enum 
 {
     Size,
@@ -40,29 +61,21 @@ typedef struct
     int min_size;
     int max_size;
     int threshold;
-} XDGIcon;
-
-/*
-typedef struct
-{
-    size_t capacity;
-    size_t size;
-    XDGIcon **data;
-} XDGIcons;
-*/
+    HashMap *icons;
+} XDGIconDir;
 
 typedef struct
 {
+    DArray *icon_dirs;
+    //HashMap *icon_index;
+    int num_icons;
     char *name;
-    DArray *icons;
-    HashMap2 *icons2;
-    List *paths;
     //char  **parents;
     //bool valid;
     //char **gtk_caches;
 } IconTheme;
 
-XDGIcon *IconCreate(const char *path, IconType type, IconContext context, int size, int min_size, int max_size, int scale, int threshold);
+XDGIconDir *IconCreate(const char *path, IconType type, IconContext context, int size, int min_size, int max_size, int scale, int threshold);
 
 int GetCurrentGTKIconThemeName(char theme_name[]);
 //char *LookupIcon(char *icon_name, int size, int scale, char *theme);
@@ -72,7 +85,7 @@ char *FindIcon(const char *icon, int size, int scale);
 //List *FindAllIcons(List *icons, int size, int scale);
 HashMap *FindAllIcons(List *icons, int size, int scale);
 HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale);
-//void TestPrintSections(HashMap *map);
+
 //XDGIcon *LookupIconHelper(XDGIcon *icon_dir_info, char *icon_name, char *theme);
 
 #endif

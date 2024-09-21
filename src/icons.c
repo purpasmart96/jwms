@@ -61,84 +61,6 @@ static size_t GetIconContext(char *key)
     return -1;
 }
 
-void ParseSection(FILE *file, const char *section_name, HashMap *map)
-{
-    char line[512];
-    char section[128];
-    char key[128];
-    char value[128];
-    while (fgets(line, sizeof(line), file))
-    {
-        // Skip empty lines and comments
-        if (line[0] == '\0' || line[0] == '#' || line[0] == ';')
-        {
-            continue;
-        }
-
-        // Remove newline character
-        line[strcspn(line, "\n")] = 0;
-
-        // Check if line contains a section header
-        if (line[0] == '[' && line[strlen(line) - 1] == ']')
-        {
-            // Extract section name
-            sscanf(line, "[%127[^]]", section);
-            continue;
-        }
-
-        // Parse key-value pairs in the section
-        if (strcmp(section, section_name) == 0)
-        {
-            if (sscanf(line, "%127[^=]=%s", key, value) == 2)
-            {
-                HashMapInsertWithSection(map, section_name, key, value);
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-}
-
-void ParseSections(FILE *file, HashMap *map)
-{
-    char line[256];
-    char section[128];
-    char key[128];
-    char value[128];
-    bool in_section = false;
-    while (fgets(line, sizeof(line), file))
-    {
-        // Skip empty lines and comments
-        if (line[0] == '\0' || line[0] == '#' || line[0] == ';')
-        {
-            continue;
-        }
-
-        // Remove newline character
-        line[strcspn(line, "\n")] = 0;
-
-        // Check if line contains a section header
-        if (line[0] == '[' && line[strlen(line) - 1] == ']')
-        {
-            // Extract section name
-            sscanf(line, "[%127[^]]", section);
-            in_section = true;
-        }
-
-        // Parse key-value pairs in the section
-        if (in_section)
-        {
-            if (sscanf(line, "%127[^=]=%s", key, value) == 2)
-            {
-                // Should also insert the section name into a dynamic array and store for later...
-                HashMapInsertWithSection(map, section, key, value);
-            }
-        }
-    }
-}
-
 static int ParseInt(const char *str)
 {
     char *end;
@@ -151,7 +73,6 @@ static int ParseInt(const char *str)
 
 static void ParseThemeIcons(DArray *icons, const char *theme)
 {
-
     char path[512];
     const char *base = "/usr/share/icons/";
 
@@ -251,7 +172,7 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
             }
             else
             {
-                XDGIcon *icon = IconCreate(section, type, context, size, min_size, max_size, scale, threshold);
+                XDGIconDir *icon = IconCreate(section, type, context, size, min_size, max_size, scale, threshold);
                 if (icon != NULL)
                 {
                     DArrayAdd(icons, icon);
@@ -268,12 +189,13 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
             }
         }
     }
+
     fclose(fp);
 }
 
-XDGIcon *IconCreate(const char *path, IconType type, IconContext context, int size, int min_size, int max_size, int scale, int threshold)
+XDGIconDir *IconCreate(const char *path, IconType type, IconContext context, int size, int min_size, int max_size, int scale, int threshold)
 {
-    XDGIcon *icon_dir = malloc(sizeof(*icon_dir));
+    XDGIconDir *icon_dir = malloc(sizeof(*icon_dir));
     icon_dir->path = strdup(path);
     icon_dir->size = size;
     icon_dir->scale = scale;
@@ -282,41 +204,112 @@ XDGIcon *IconCreate(const char *path, IconType type, IconContext context, int si
     icon_dir->max_size = max_size;
     icon_dir->min_size = min_size;
     icon_dir->threshold = threshold;
+    icon_dir->icons = HashMapCreate();
 
     return icon_dir;
 }
 
 void IconDestroy(void *icon_dir_ptr)
 {
-    XDGIcon *icon_dir = icon_dir_ptr;
+    XDGIconDir *icon_dir = icon_dir_ptr;
+    HashMapDestroy(icon_dir->icons);
     free(icon_dir->path);
     free(icon_dir);
 }
 
 void IconPrint(void *icon_dir_ptr)
 {
-    XDGIcon *icon_dir = icon_dir_ptr;
+    XDGIconDir *icon_dir = icon_dir_ptr;
     printf("%s\n",icon_dir->path);
 }
 
 static int IconDirCmp(const void *a, const void *b)
 {
-    const XDGIcon *icon_a = *(XDGIcon**)a;
-    const XDGIcon *icon_b = *(XDGIcon**)b;
+    const XDGIconDir *icon_a = *(XDGIconDir**)a;
+    const XDGIconDir *icon_b = *(XDGIconDir**)b;
 
     return strcasecmp(icon_a->path, icon_b->path);
+}
+
+static int IconDirCmp2(const void *a, const void *b)
+{
+    const XDGIconDir *icon_a = a;
+    const char *icon_path = b;
+
+    return strcasecmp(icon_a->path, icon_path);
+}
+
+static void IndexIcons(IconTheme *theme, const char *base_dir)
+{
+    // Iterate over all directories and icon files
+    for (size_t i = 0; i < theme->icon_dirs->size; i++)
+    {
+        XDGIconDir *current_icon_dir = theme->icon_dirs->data[i];
+        char directory_path[512];
+        snprintf(directory_path, sizeof(directory_path), "%s/%s/%s", base_dir, theme->name, current_icon_dir->path);
+
+        // Open the directory
+        DIR *dir = opendir(directory_path);
+        if (dir == NULL)
+        {
+            continue; // Skip if the directory cannot be opened
+        }
+
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL)
+        {
+            // Check if the entry is a regular file and has a valid extension
+            //if (entry->d_type == DT_REG)
+            char *ext = strrchr(entry->d_name, '.');
+            if (ext)
+            {
+                // Check file extension
+                const char *icon_exts[] = {".png", ".svg", ".xpm"};
+                const int num_exts = 3;
+                bool valid_ext = false;
+
+                for (int j = 0; j < num_exts; j++)
+                {
+                    if ((strcmp(ext, icon_exts[j]) == 0))
+                    {
+                        valid_ext = true;
+                        break;
+                    }
+                }
+
+                if (valid_ext)
+                {
+                    // Create full path for the icon file
+                    char full_path[768];
+                    char name[128];
+                    strcpy(name, entry->d_name);
+                    char *pos = strrchr(name, '.');
+                    *pos = '\0';
+                    snprintf(full_path, sizeof(full_path), "%s/%s", directory_path, entry->d_name);
+
+                    // Index the file in the hash map
+                    //HashMapInsert(theme->icon_index, name, full_path);
+                    HashMapInsert(current_icon_dir->icons, name, full_path);
+                    theme->num_icons++;
+                }
+            }
+        }
+
+        closedir(dir);
+    }
 }
 
 IconTheme *LoadIconTheme(const char *theme_name)
 {
     IconTheme *theme = malloc(sizeof(*theme));
-    //theme->paths = ListCreate();
     theme->name = strdup(theme_name);
-    theme->icons = DArrayCreate(64, sizeof(XDGIcon*));
-    //theme->icons2 = HashMapCreate2(sizeof(XDGIcon*), IconDestroy, IconPrint);
-    ParseThemeIcons(theme->icons, theme_name);
-    // Sort not really needed
-    //DArraySort(theme->icons, IconDirCmp);
+    theme->icon_dirs = DArrayCreate(64, sizeof(XDGIconDir*));
+    //theme->icon_index = HashMapCreate();
+    theme->num_icons = 0;
+    ParseThemeIcons(theme->icon_dirs, theme_name);
+    IndexIcons(theme, "/usr/share/icons");
+    DArraySort(theme->icon_dirs, IconDirCmp);
+
     //printf("\n");
     //DArrayPrint(theme->icons, IconPrint);
     //printf("\n");
@@ -325,9 +318,8 @@ IconTheme *LoadIconTheme(const char *theme_name)
 
 void UnLoadIconTheme(IconTheme *icon_theme)
 {
-    //ListDestroy(icon_theme->paths);
-    //HashMapDestroy2(icon_theme->icons2);
-    DArrayDestroy(icon_theme->icons, IconDestroy);
+    //HashMapDestroy(icon_theme->icon_index);
+    DArrayDestroy(icon_theme->icon_dirs, IconDestroy);
     //IconsDestroy(icon_theme->icons);
     free(icon_theme->name);
     free(icon_theme);
@@ -425,7 +417,7 @@ int GetCurrentGTKIconThemeName(char theme_name[])
     return 0;
 }
 
-static bool DirectoryMatchesSize(XDGIcon *icon, int icon_size, int icon_scale)
+static bool DirectoryMatchesSize(XDGIconDir *icon, int icon_size, int icon_scale)
 {
     if (icon->scale != icon_scale)
     {
@@ -446,7 +438,7 @@ static bool DirectoryMatchesSize(XDGIcon *icon, int icon_size, int icon_scale)
 }
 
 // Function to calculate the Directory Size Distance
-static int DirectorySizeDistance(XDGIcon *icon, int icon_size, int icon_scale)
+static int DirectorySizeDistance(XDGIconDir *icon, int icon_size, int icon_scale)
 {
     if (icon->type == Fixed)
     {
@@ -485,6 +477,43 @@ char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale)
     if (access(icon_name, F_OK) == 0)
         return strdup(icon_name);
 
+    char closest_icon_path[512]; 
+    int min_size = INT_MAX;
+
+    for (size_t i = 0; i < theme->icon_dirs->size; i++)
+    {
+        XDGIconDir *curr_icon_dir = theme->icon_dirs->data[i];
+    
+        // First check the hash map for the icon
+        const char *icon_path = HashMapGet(curr_icon_dir->icons, icon_name);
+        if (icon_path != NULL)
+        {
+            if (DirectoryMatchesSize(curr_icon_dir, size, scale))
+            {
+                return strdup(icon_path); // Exact match
+            }
+
+            // Calculate the size difference to find the closest match
+            int size_delta = DirectorySizeDistance(curr_icon_dir, size, scale);
+            if (size_delta < min_size)
+            {
+                min_size = size_delta;
+                strlcpy(closest_icon_path, icon_path, sizeof(closest_icon_path));
+            }
+        }
+    }
+
+    // Return the closest icon path found
+    if (min_size != INT_MAX)
+        return strdup(closest_icon_path);
+    return NULL;
+}
+
+char *LookupIconOld(IconTheme *theme, const char *icon_name, int size, int scale)
+{
+    if (access(icon_name, F_OK) == 0)
+        return strdup(icon_name);
+
     char icon_path[512];
     char closest_icon_path[512];
     const char *base_dir = "/usr/share/icons/";
@@ -498,9 +527,9 @@ char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale)
 
     int min_size = INT_MAX;
 
-    for (size_t i = 0; i < theme->icons->size; i++)
+    for (size_t i = 0; i < theme->icon_dirs->size; i++)
     {
-        XDGIcon *current_icon = theme->icons->data[i];
+        XDGIconDir *current_icon = theme->icon_dirs->data[i];
 
         for (int j = 0; j < num_exts; j++)
         {
@@ -740,7 +769,9 @@ HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
     SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "view-refresh", size, scale);
     SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "system-log-out", size, scale);
 
-    //free(theme);
+    DEBUG_LOG("\nStored %d icons in %s theme\n", icon_theme->num_icons, icon_theme->name);
+    DEBUG_LOG("Stored %d icons in %s theme\n\n", default_theme->num_icons, default_theme->name);
+
     UnLoadIconTheme(icon_theme);
     UnLoadIconTheme(default_theme);
     //return LookupFallbackIcon(icon);
