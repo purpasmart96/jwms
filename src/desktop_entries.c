@@ -179,6 +179,22 @@ void EntryRemove(BTreeNode *entries, const char *key)
     BSTDestroyNode(entries, key, NameCmp2, DestroyEntry);
 }
 
+static bool FoundExecExact(XDGDesktopEntry *entry, const char *exec)
+{
+    char exec_basename[128];
+    strlcpy(exec_basename, entry->exec, sizeof(exec_basename));
+
+    return strcmp(basename(exec_basename), exec) == 0;
+}
+
+static bool FoundExecNaive(XDGDesktopEntry *entry, const char *exec)
+{
+    char exec_basename[128];
+    strlcpy(exec_basename, entry->exec, sizeof(exec_basename));
+
+    return strstr(basename(exec_basename), exec) != NULL;
+}
+
 XDGDesktopEntry *EntriesSearch(BTreeNode *entries, const char *key)
 {
     BTreeNode *node = BSTSearchNode(entries, key, NameCmp2);
@@ -206,16 +222,16 @@ static XDGDesktopEntry *InorderTraverseProgramSearch(BTreeNode *node, XDGAdditio
     XDGDesktopEntry *entry = node->data;
     if (entry->extra_category == extra_category)
     {
-        char *exec_basename = basename(entry->exec);
-        if (strcmp(exec_basename, name) == 0)
+        if (FoundExecExact(entry, name))
         {
             return entry;
         }
 
-        if (strstr(exec_basename, name) != NULL)
+        if (FoundExecNaive(entry, name))
         {
             return entry;
         }
+
         DEBUG_LOG("Setting %s as an fallback since %s does not match %s\n", entry->exec, entry->exec, name);
         *fallback = entry;
     }
@@ -258,8 +274,8 @@ static XDGDesktopEntry *InorderTraverseProgramSearch2(BTreeNode *node, const cha
     }
 
     XDGDesktopEntry *entry = node->data;
-    char *exec_basename = basename(entry->exec);
-    if (strcmp(exec_basename, name) == 0)
+
+    if (FoundExecExact(entry, name))
     {
         return entry;
     }
