@@ -11,7 +11,6 @@ DArray *DArrayCreate(size_t capacity, size_t data_size)
 {
     DArray *darray = malloc(sizeof(*darray));
     darray->capacity = capacity;
-    darray->data_size = data_size;
     darray->data = malloc(sizeof(void*) * darray->capacity);
     darray->size = 0;
     darray->dirty = true;
@@ -29,17 +28,17 @@ void DArrayPrint(DArray *darray, void (*PrintCallback)(void*))
 
 void **DArrayResize(DArray *darray, size_t capacity)
 {
-    darray->capacity = capacity;
-    void **temp = realloc(darray->data, sizeof(void*) * darray->capacity);
+    void **new_array = realloc(darray->data, sizeof(void*) * capacity);
 
-    if (!temp)
+    if (!new_array)
     {
         return NULL;
     }
 
-    darray->data = temp;
+    darray->capacity = capacity;
+    darray->data = new_array;
 
-    return temp;
+    return new_array;
 }
 
 void DArrayDestroy(DArray *darray, void (*DestroyCallback)(void*))
@@ -79,6 +78,19 @@ int DArrayAdd(DArray *darray, void *element)
     return 0;
 }
 
+void *DArrayLinearSearch(DArray *darray, const void *target, int (*CompareCallback)(const void*, const void*))
+{
+    for (size_t i = 0; i < darray->size; i++)
+    {
+        if (CompareCallback(darray->data[i], target))
+        {
+            return darray->data[i];
+        }
+    }
+
+    return NULL;
+}
+
 void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallback)(const void*, const void*))
 {
     if (darray->dirty)
@@ -109,6 +121,14 @@ void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallba
     return NULL;
 }
 
+void *DArraySearch(DArray *darray, const void *target, int (*CompareCallback)(const void*, const void*))
+{
+    // Linear searches are faster when N is smaller
+    if (darray->dirty || darray->size < 128)
+        return DArrayLinearSearch(darray, target, CompareCallback);
+    return DArrayBinarySearch(darray, target, CompareCallback);
+}
+
 void DArraySort(DArray *darray, int (*CompareCallback)(const void*, const void*))
 {
     qsort(darray->data, darray->size, sizeof(void*), CompareCallback);
@@ -128,14 +148,15 @@ bool DArrayContains(DArray *darray, const void *item, int (*SortCompareCallback)
 // Not Tested
 void **DArrayRemove(DArray *darray, size_t index)
 {
+    size_t data_size = sizeof(void*);
     // Allocate an array with a size 1 less than the current one
-    void **temp = malloc((darray->size - 1) * darray->data_size);
+    void **temp = malloc((darray->size - 1) * data_size);
 
     if (index != 0) // copy everything BEFORE the index
-        memcpy(temp, darray->data, (index - 1) * darray->data_size);
+        memcpy(temp, darray->data, (index - 1) * data_size);
 
     if (index != (darray->size - 1)) // copy everything AFTER the index
-        memcpy(temp + index, darray->data + index + 1, (darray->size - index - 1) * darray->data_size);
+        memcpy(temp + index, darray->data + index + 1, (darray->size - index - 1) * data_size);
 
     free(darray->data);
     return temp;
