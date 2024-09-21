@@ -7,7 +7,7 @@
 
 #include "darray.h"
 
-DArray *DArrayCreate(size_t capacity, size_t data_size)
+DArray *DArrayCreate(size_t capacity)
 {
     DArray *darray = malloc(sizeof(*darray));
     darray->capacity = capacity;

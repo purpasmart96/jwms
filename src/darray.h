@@ -10,7 +10,7 @@ typedef struct
 } DArray;
 
 //void DArrayDestroyElement(void *element, void (*GenericDestroy)(void*));
-DArray *DArrayCreate(size_t capacity, size_t data_size);
+DArray *DArrayCreate(size_t capacity);
 void *DArrayLinearSearch(DArray *darray, const void *target, int (*CompareCallback)(const void*, const void*));
 void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallback)(const void*, const void*));
 void *DArraySearch(DArray *darray, const void *target, int (*CompareCallback)(const void*, const void*));

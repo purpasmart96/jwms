@@ -303,7 +303,7 @@ IconTheme *LoadIconTheme(const char *theme_name)
 {
     IconTheme *theme = malloc(sizeof(*theme));
     theme->name = strdup(theme_name);
-    theme->icon_dirs = DArrayCreate(64, sizeof(XDGIconDir*));
+    theme->icon_dirs = DArrayCreate(64);
     //theme->icon_index = HashMapCreate();
     theme->num_icons = 0;
     ParseThemeIcons(theme->icon_dirs, theme_name);
@@ -477,7 +477,7 @@ char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale)
     if (access(icon_name, F_OK) == 0)
         return strdup(icon_name);
 
-    char closest_icon_path[512]; 
+    char closest_icon_path[512];
     int min_size = INT_MAX;
 
     for (size_t i = 0; i < theme->icon_dirs->size; i++)
