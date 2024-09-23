@@ -115,10 +115,9 @@ int ExpandPath(char *expanded_path, const char *path, size_t buffer_size)
         return 0;
     }
 
-    const char* home = getenv("HOME");
+    const char *home = getenv("HOME");
     if (home == NULL)
     {
-        // HOME environment variable not set
         fprintf(stderr, "HOME environment variable not set\n");
         return -1;
     }

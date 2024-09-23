@@ -43,7 +43,7 @@ HashMap *HashMapCreate(void)
     return map;
 }
 
-HashMap2 *HashMapCreate2(size_t data_size, void (*DestroyCallback)(void*), void (*PrintCallback)(void*))
+HashMap2 *HashMapCreate2(void (*DestroyCallback)(void*), void (*PrintCallback)(void*))
 {
     HashMap2 *map = malloc(sizeof(*map));
     map->entries = malloc(sizeof(Key2*) * CAPACITY_START);
@@ -53,7 +53,6 @@ HashMap2 *HashMapCreate2(size_t data_size, void (*DestroyCallback)(void*), void 
         map->entries[i] = NULL;
     }
     map->size = 0;
-    map->data_size = data_size;
     map->capacity = CAPACITY_START;
     map->DestroyCallback = DestroyCallback;
     map->PrintCallback = PrintCallback;
@@ -220,7 +219,6 @@ const char *HashMapGet(HashMap *map, const char *key)
 void *HashMapGet2(HashMap2 *map, const char *key)
 {
     size_t hash = Hash(key);
-    //size_t index = hash % map->capacity;
     size_t index = hash & (map->capacity - 1);
 
     while (map->entries[index] != NULL)
@@ -292,7 +290,6 @@ void HashMapDestroy2(HashMap2 *map)
         if (map->entries[i] != NULL)
         {
             free(map->entries[i]->key);
-            //free(map->entries[i]->value);
             map->DestroyCallback(map->entries[i]->value);
             free(map->entries[i]);
         }
