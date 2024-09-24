@@ -53,6 +53,8 @@ typedef enum
 
 typedef struct
 {
+    HashMap *icons;
+
     char *path;
     int size;
     int scale;
@@ -61,7 +63,8 @@ typedef struct
     int min_size;
     int max_size;
     int threshold;
-    HashMap *icons;
+
+    bool indexed;
 } XDGIconDir;
 
 typedef struct
