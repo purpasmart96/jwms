@@ -25,5 +25,7 @@ bool StringToBool(char *input);
 void StripTrailingWSpace(char *str);
 void CombinePath(char *dest, size_t dest_size, const char *path1, const char *path2);
 int ExpandPath(char *expanded_path, const char *path, size_t buffer_size);
+bool PowerOfTwo(size_t x);
+bool MultiplesOf8(size_t x);
 
 #endif

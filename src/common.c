@@ -147,3 +147,14 @@ int ExpandPath(char *expanded_path, const char *path, size_t buffer_size)
 
     return 0;
 }
+
+bool PowerOfTwo(size_t x)
+{
+    return (x != 0) && ((x & (x - 1)) == 0);
+}
+
+bool MultiplesOf8(size_t x)
+{
+    // Equivalent to x % 8 == 0
+    return (x & 7) == 0;
+}

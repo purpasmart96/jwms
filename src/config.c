@@ -87,6 +87,17 @@ static float GetValidOpacity(float opacity)
     return CLAMP(opacity, 0.0, 1.0);
 }
 
+static int GetValidDefaultIconSize(int icon_size)
+{
+    if (!MultiplesOf8(icon_size))
+    {
+        printf("global_preferred_icon_size is not mutliple of 8!\nUsing the default value of 32\n");
+        icon_size = 32;
+    }
+
+    return icon_size;
+}
+
 static int ReadConfigFile(cfg_t *cfg, const char *filename, const char *user_dir, const char *system_dir)
 {
     int ret = -1;
@@ -315,7 +326,7 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
     (*jwm)->global_fg_color_active = cfg_getstr(*cfg, "global_fg_color_active");
     (*jwm)->global_fg_color_inactive = cfg_getstr(*cfg, "global_fg_color_inactive");
     (*jwm)->global_outline_color = cfg_getstr(*cfg, "global_outline_color");
-    (*jwm)->global_preferred_icon_size = cfg_getint(*cfg, "global_preferred_icon_size");
+    (*jwm)->global_preferred_icon_size = GetValidDefaultIconSize(cfg_getint(*cfg, "global_preferred_icon_size"));
     (*jwm)->global_font = cfg_getstr(*cfg, "global_font");
     (*jwm)->global_font_alignment = cfg_getstr(*cfg, "global_font_alignment");
     (*jwm)->global_font_size = cfg_getint(*cfg, "global_font_size");
