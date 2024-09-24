@@ -112,6 +112,7 @@ static XDGDesktopEntry *CreateEmptyEntry()
     entry->extra_category_name = NULL;
     entry->name = NULL;
     entry->exec = NULL;
+    entry->try_exec = NULL;
     entry->icon = NULL;
     entry->terminal_required = false;
     return entry;
@@ -124,6 +125,7 @@ static void DestroyEntry(void *entry)
     free(uentry->extra_category_name);
     free(uentry->name);
     free(uentry->exec);
+    free(uentry->try_exec);
     free(uentry->icon);
     ListDestroy(uentry->categories);
     free(entry);
@@ -302,6 +304,13 @@ static void ParseExec(XDGDesktopEntry *entry, const char *exec)
     char *save_ptr;
     char *str_copy = strdup(exec);
 
+    if (entry->try_exec != NULL && strchr(str_copy, '%') != NULL)
+    {
+        entry->exec = strdup(entry->try_exec);
+        free(str_copy);
+        return;
+    }
+
     char *token = strtok_r(str_copy, " ", &save_ptr);
 
     // Parse environment variables if they exist
@@ -438,6 +447,7 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         case TryExec:
         {
             DEBUG_LOG("Found TryExec: %s\n", value);
+            entry->try_exec = strdup(value);
             break;
         }
         case Exec:

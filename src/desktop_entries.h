@@ -77,7 +77,7 @@ typedef struct
     char *extra_category_name;
     char *name;
     char *exec;
-    char *desc;
+    char *try_exec;
     char *icon;
     bool terminal_required;
 } XDGDesktopEntry;
