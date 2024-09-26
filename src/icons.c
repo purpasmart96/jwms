@@ -22,7 +22,9 @@
 #include "desktop_entries.h"
 #include "icons.h"
 
-//#define INDEXED_ICON_SEARCH 1
+
+#define MAX_FILES_TO_INDEX_PER_DIR 250
+
 #define MULTIPHASE_ICON_SEARCH 1
 //#define HYBRID_ICON_SEARCH 1
 
@@ -219,7 +221,7 @@ XDGIconDir *IconCreate(const char *path, IconType type, IconContext context, int
     icon_dir->min_size = min_size;
     icon_dir->threshold = threshold;
     icon_dir->icons = HashMapCreate();
-    icon_dir->indexed = false;
+    icon_dir->index_state = NotIndexed;
 
     return icon_dir;
 }
@@ -262,71 +264,10 @@ static int IconDirCmpSubStr(const void *a, const void *b)
     return strstr(icon_a->path, icon_path) != NULL;
 }
 
-static void IndexIcons(IconTheme *theme, const char *base_dir)
+static void IndexSingleIconDir(XDGIconDir *icon_dir, const char *theme_path)
 {
-    // Iterate over all directories and icon files
-    for (size_t i = 0; i < theme->icon_dirs->size; i++)
-    {
-        XDGIconDir *current_icon_dir = theme->icon_dirs->data[i];
-        char directory_path[512];
-        snprintf(directory_path, sizeof(directory_path), "%s/%s/%s", base_dir, theme->name, current_icon_dir->path);
-
-        // Open the directory
-        DIR *dir = opendir(directory_path);
-        if (dir == NULL)
-        {
-            continue; // Skip if the directory cannot be opened
-        }
-
-        struct dirent *entry;
-        while ((entry = readdir(dir)) != NULL)
-        {
-            // Check if the entry is a regular file and has a valid extension
-            //if (entry->d_type == DT_REG)
-            char *ext = strrchr(entry->d_name, '.');
-            if (ext)
-            {
-                // Check file extension
-                const char *icon_exts[] = {".png", ".svg", ".xpm"};
-                const int num_exts = 3;
-                bool valid_ext = false;
-
-                for (int j = 0; j < num_exts; j++)
-                {
-                    if ((strcmp(ext, icon_exts[j]) == 0))
-                    {
-                        valid_ext = true;
-                        break;
-                    }
-                }
-
-                if (valid_ext)
-                {
-                    // Create full path for the icon file
-                    char full_path[768];
-                    char name[128];
-                    strcpy(name, entry->d_name);
-                    char *pos = strrchr(name, '.');
-                    *pos = '\0';
-                    snprintf(full_path, sizeof(full_path), "%s/%s", directory_path, entry->d_name);
-
-                    // Index the file in the hash map
-                    //HashMapInsert(theme->icon_index, name, full_path);
-                    HashMapInsert(current_icon_dir->icons, name, full_path);
-                    theme->num_icons++;
-                }
-            }
-        }
-
-        closedir(dir);
-    }
-}
-
-static void IndexSingleIconDir(XDGIconDir *icon_dir, const char *theme_name)
-{
-    const char *base_dir = "/usr/share/icons";
     char directory_path[512];
-    snprintf(directory_path, sizeof(directory_path), "%s/%s/%s", base_dir, theme_name, icon_dir->path);
+    snprintf(directory_path, sizeof(directory_path), "%s/%s", theme_path, icon_dir->path);
 
     DIR *dir = opendir(directory_path);
     if (dir == NULL)
@@ -335,25 +276,20 @@ static void IndexSingleIconDir(XDGIconDir *icon_dir, const char *theme_name)
     }
 
     struct dirent *entry;
+    size_t file_count = 0;
     while ((entry = readdir(dir)) != NULL)
     {
+        // Stop indexing if the limit is reached
+        if (file_count > MAX_FILES_TO_INDEX_PER_DIR)
+        {
+            DEBUG_LOG("Max files reached per directory! Finishing %s early!\n", directory_path);
+            icon_dir->index_state = PartiallyIndexed;
+            break;
+        }
+
         char *ext = strrchr(entry->d_name, '.');
         if (ext)
         {
-/*
-            const char *icon_exts[] = {".png", ".svg", ".xpm"};
-            bool valid_ext = false;
-
-            for (int j = 0; j < 3; j++)
-            {
-                if (strcmp(ext, icon_exts[j]) == 0)
-                {
-                    valid_ext = true;
-                    break;
-                }
-            }
-*/
-
             bool valid_ext = false;
             switch (ext[1]) {
                 case 'p':
@@ -378,6 +314,7 @@ static void IndexSingleIconDir(XDGIconDir *icon_dir, const char *theme_name)
                 // Modifying d_name is undefined behavior, but were not reusing it so it should be fine, plus it's faster
                 *ext = '\0';
                 HashMapInsert(icon_dir->icons, entry->d_name, full_path);
+                file_count++;
             }
         }
     }
@@ -385,56 +322,8 @@ static void IndexSingleIconDir(XDGIconDir *icon_dir, const char *theme_name)
     closedir(dir);
 
     // Mark the directory as indexed
-    icon_dir->indexed = true;
-}
-
-static void IndexSingleIconDir4(XDGIconDir *icon_dir, const char *theme_name)
-{
-    const char *base_dir = "/usr/share/icons";
-    char directory_path[512];
-    snprintf(directory_path, sizeof(directory_path), "%s/%s/%s", base_dir, theme_name, icon_dir->path);
-
-    DIR *dir = opendir(directory_path);
-    if (dir == NULL)
-    {
-        return; // Skip if the directory cannot be opened
-    }
-
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL)
-    {
-        char *ext = strrchr(entry->d_name, '.');
-        if (ext && ext[1])
-        {
-            //const char *icon_exts[] = {".png", ".svg", ".xpm"};
-
-            bool valid_ext = false;
-            switch (ext[1]) {
-                case 'p':
-                    valid_ext = strcmp(ext, ".png") == 0;
-                    break;
-                case 's':
-                    valid_ext = strcmp(ext, ".svg") == 0;
-                    break;
-                case 'x':
-                    valid_ext = strcmp(ext, ".xpm") == 0;
-                    break;
-            }
-
-            if (valid_ext)
-            {
-                *ext = '\0';  // Terminate name at the extension
-                char full_path[768];
-                snprintf(full_path, sizeof(full_path), "%s/%s", directory_path, entry->d_name);
-                HashMapInsert(icon_dir->icons, entry->d_name, full_path);
-            }
-        }
-    }
-
-    closedir(dir);
-
-    // Mark the directory as indexed
-    icon_dir->indexed = true;
+    if (icon_dir->index_state == NotIndexed)
+        icon_dir->index_state = FullyIndexed;
 }
 
 IconTheme *LoadIconTheme(const char *theme_name)
@@ -442,12 +331,9 @@ IconTheme *LoadIconTheme(const char *theme_name)
     IconTheme *theme = malloc(sizeof(*theme));
     theme->name = strdup(theme_name);
     theme->icon_dirs = DArrayCreate(64);
-    //theme->icon_index = HashMapCreate();
+
     theme->num_icons = 0;
     ParseThemeIcons(theme->icon_dirs, theme_name);
-#ifdef INDEXED_ICON_SEARCH
-    IndexIcons(theme, "/usr/share/icons");
-#endif
     DArraySort(theme->icon_dirs, IconDirCmp);
 
     //printf("\n");
@@ -611,6 +497,27 @@ static int DirectorySizeDistance(XDGIconDir *icon, int icon_size, int icon_scale
     return 0;
 }
 
+static bool LookupIconBackup(XDGIconDir *icon_dir, const char *icon_name, const char *theme_path)
+{
+    char icon_path[512];
+    const char *icon_exts[] = {".png", ".svg", ".xpm"};
+    const int num_exts = 3;
+    for (int j = 0; j < num_exts; j++)
+    {
+        // Create the full path.
+        // Seems like one big snprintf call is faster then mutliple strlcpy and strlcat calls
+        snprintf(icon_path, sizeof(icon_path), "%s/%s/%s%s", theme_path, icon_dir->path, icon_name, icon_exts[j]);
+
+        if (access(icon_path, F_OK) == 0)
+        {
+            HashMapInsert(icon_dir->icons, icon_name, icon_path);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static char *LookupIconExactSize(IconTheme *theme, const char *icon_name, int size, int scale)
 {
     char icon_size[4];
@@ -630,15 +537,28 @@ static char *LookupIconExactSize(IconTheme *theme, const char *icon_name, int si
 
     if (found != 0)
     {
+        // Build partial path
+        const char *base_dir = "/usr/share/icons";
+        char theme_dir[256];
+        snprintf(theme_dir, sizeof(theme_dir), "%s/%s", base_dir, theme->name);
+
         for (size_t i = 0; i < found; i++)
         {
             int curr_index = index_array[i];
             XDGIconDir *curr_icon_dir = theme->icon_dirs->data[curr_index];
 
-            // Check if the directory is indexed, if not, index it
-            if (!curr_icon_dir->indexed)
+            // Check if the directory is indexed, if not, try to index it
+            if (curr_icon_dir->index_state == NotIndexed)
             {
-                IndexSingleIconDir(curr_icon_dir, theme->name);
+                IndexSingleIconDir(curr_icon_dir, theme_dir);
+            }
+
+            // If partially indexed, fallback to using "access"
+            if (curr_icon_dir->index_state == PartiallyIndexed)
+            {
+                // If valid, add icon to the hashmap
+                if (!LookupIconBackup(curr_icon_dir, icon_name, theme_dir))
+                    continue;
             }
 
             // Now, search for the icon in the indexed hash map
@@ -671,15 +591,27 @@ static char *LookupIconScaled(IconTheme *theme, const char *icon_name)
 
     if (found != 0)
     {
+        // Build partial path
+        const char *base_dir = "/usr/share/icons";
+        char theme_dir[256];
+        snprintf(theme_dir, sizeof(theme_dir), "%s/%s", base_dir, theme->name);
+
         for (size_t i = 0; i < found; i++)
         {
             int curr_index = index_array[i];
             XDGIconDir *curr_icon_dir = theme->icon_dirs->data[curr_index];
 
             // Check if the directory is indexed, if not, index it
-            if (!curr_icon_dir->indexed)
+            if (curr_icon_dir->index_state == NotIndexed)
             {
-                IndexSingleIconDir(curr_icon_dir, theme->name);
+                IndexSingleIconDir(curr_icon_dir, theme_dir);
+            }
+            // If partially indexed, fallback to using "access"
+            if (curr_icon_dir->index_state == PartiallyIndexed)
+            {
+                // If valid, add icon to the hashmap
+                if (!LookupIconBackup(curr_icon_dir, icon_name, theme_dir))
+                    continue;
             }
 
             // Now, search for the icon in the indexed hash map
@@ -734,6 +666,13 @@ static char *LookupIconHybrid(IconTheme *theme, const char *icon_name, int size,
     if (found_icon != NULL)
         return found_icon;
 
+    if (strcmp(theme->name, "hicolor") == 0)
+    {
+        found_icon = LookupIconScaled(theme, icon_name);
+        if (found_icon != NULL)
+            return found_icon;
+    }
+
     char closest_icon_path[512];
     int min_size = INT_MAX;
     char icon_path[512];
@@ -751,7 +690,7 @@ static char *LookupIconHybrid(IconTheme *theme, const char *icon_name, int size,
         XDGIconDir *curr_icon_dir = theme->icon_dirs->data[i];
 
         // Skip already searched paths
-        if (curr_icon_dir->indexed)
+        if (curr_icon_dir->index_state == FullyIndexed)
         {
             continue;
         }
@@ -780,43 +719,6 @@ static char *LookupIconHybrid(IconTheme *theme, const char *icon_name, int size,
         return strdup(closest_icon_path);
     }
 
-    return NULL;
-}
-
-static char *LookupIconIndexed(IconTheme *theme, const char *icon_name, int size, int scale)
-{
-    if (access(icon_name, F_OK) == 0)
-        return strdup(icon_name);
-
-    char closest_icon_path[512];
-    int min_size = INT_MAX;
-
-    for (size_t i = 0; i < theme->icon_dirs->size; i++)
-    {
-        XDGIconDir *curr_icon_dir = theme->icon_dirs->data[i];
-
-        // First check the hash map for the icon
-        const char *icon_path = HashMapGet(curr_icon_dir->icons, icon_name);
-        if (icon_path == NULL)
-            continue;
-        
-        if (DirectoryMatchesSize(curr_icon_dir, size, scale))
-        {
-            return strdup(icon_path); // Exact match
-        }
-
-        // Calculate the size difference to find the closest match
-        int size_delta = DirectorySizeDistance(curr_icon_dir, size, scale);
-        if (size_delta < min_size)
-        {
-            min_size = size_delta;
-            strlcpy(closest_icon_path, icon_path, sizeof(closest_icon_path));
-        }
-    }
-
-    // Return the closest icon path found
-    if (min_size != INT_MAX)
-        return strdup(closest_icon_path);
     return NULL;
 }
 
@@ -875,9 +777,7 @@ static char *LookupIconLinear(IconTheme *theme, const char *icon_name, int size,
 
 char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale)
 {
-#ifdef INDEXED_ICON_SEARCH
-    return LookupIconIndexed(theme, icon_name, size, scale);
-#elif HYBRID_ICON_SEARCH
+#ifdef HYBRID_ICON_SEARCH
     return LookupIconHybrid(theme, icon_name, size, scale);
 #elif MULTIPHASE_ICON_SEARCH
     return LookupIconMultiPhase(theme, icon_name, size, scale);
@@ -916,7 +816,7 @@ char *FindIconHelper(const char *icon, int size, int scale, const char *theme)
     }
 
     /*
-    if theme has parents
+    if icon_theme->has_parents
         parents = theme.parents
 
     for (parent in parents)
@@ -1043,7 +943,7 @@ HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
     int found = GetCurrentGTKIconThemeName(theme);
     //char *theme = GetCurrentGTKIconThemeName();
     //char *theme = "Papirus";
-    //char *theme = "breeze";
+    //char *theme = "breeze-dark";
     //int found = 0;
     if (found != 0 || theme[0] == '\0')
     {

@@ -51,6 +51,13 @@ typedef enum
 } IconDirKeyType;
 */
 
+typedef enum
+{
+    NotIndexed,
+    PartiallyIndexed,
+    FullyIndexed
+} IndexedState;
+
 typedef struct
 {
     HashMap *icons;
@@ -64,13 +71,12 @@ typedef struct
     int max_size;
     int threshold;
 
-    bool indexed;
+    IndexedState index_state;
 } XDGIconDir;
 
 typedef struct
 {
     DArray *icon_dirs;
-    //HashMap *icon_index;
     int num_icons;
     char *name;
     //char  **parents;
