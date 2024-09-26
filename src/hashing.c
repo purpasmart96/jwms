@@ -12,7 +12,7 @@
 // 64 bit and 32 bit fnv1-a
 static size_t Hash(const char *key)
 {
-#ifdef __x86_64__
+#if defined (__x86_64__) || defined (__aarch64__)
     const size_t fnv_prime = 1099511628211;
     size_t hash = 14695981039346656037u; // FNV offset basis
 #else
