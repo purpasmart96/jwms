@@ -81,6 +81,7 @@ static int LoadAllDesktopEntries(BTreeNode **entries)
 static int LoadIcons(JWM *jwm, BTreeNode *entries, HashMap **icons)
 {
     printf("Loading icons...\n");
+    
     *icons = FindAllIcons2(entries, jwm->global_preferred_icon_size, 1);
     if (*icons == NULL)
     {
@@ -152,7 +153,10 @@ static int InitializeConfig(JWM **jwm, cfg_t **cfg)
 static void CleanUp(JWM *jwm, cfg_t *cfg, HashMap *icons, BTreeNode *entries)
 {
     if (icons)
+    {
+        DestroyIconThemes();
         HashMapDestroy(icons);
+    }
     if (entries)
         EntriesDestroy(entries);
     if (jwm)

@@ -28,6 +28,8 @@
 #define MULTIPHASE_ICON_SEARCH 1
 //#define HYBRID_ICON_SEARCH 1
 
+static DArray *themes = NULL;
+
 static const Pair common_icon_sizes[] =
 {
     {"48",  48 },
@@ -88,13 +90,28 @@ static int ParseInt(const char *str)
     return -1;
 }
 
-static void ParseThemeIcons(DArray *icons, const char *theme)
+static void ParseInheritedThemes(IconTheme *theme, const char *inherits)
+{
+    char *str_copy = strdup(inherits);
+
+    char *reserved;
+    char *theme_name = strtok_r(str_copy, ",", &reserved);
+    while (theme_name != NULL)
+    {
+        DEBUG_LOG("Found parent theme: %s\n", theme_name);
+        DArrayAdd(theme->parents, strdup(theme_name));
+        theme_name = strtok_r(NULL, ",", &reserved);
+    }
+    free(str_copy);
+}
+
+static void ParseThemeIcons(IconTheme *theme)
 {
     char path[512];
     const char *base = "/usr/share/icons/";
 
     strlcpy(path, base, sizeof(path));
-    strlcat(path, theme, sizeof(path));
+    strlcat(path, theme->name, sizeof(path));
     strlcat(path, "/index.theme", sizeof(path));
 
     FILE *fp = fopen(path, "r");
@@ -133,12 +150,12 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
         if (line[0] == '[' && line[strlen(line) - 1] == ']')
         {
             sscanf(line, "[%127[^]]", section);
-            if (strcmp(section, "Icon Theme") != 0)
-            {
+            //if (strcmp(section, "Icon Theme") != 0)
+            //{
                 //ListAdd(dirs, section, strlen(section) + 1);
                 in_section = true;
                 continue;
-            }
+            //}
         }
 
         // Parse key-value pairs in the section
@@ -146,7 +163,11 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
         {
             if (sscanf(line, "%127[^=]=%127s", key, value) == 2)
             {
-                if (strcmp(key, "Size") == 0)
+                if (strcmp(key, "Inherits") == 0)
+                {
+                    ParseInheritedThemes(theme, value);
+                }
+                else if (strcmp(key, "Size") == 0)
                 {
                     size = ParseInt(value);
                     if (min_size == -1)  // fallback value
@@ -192,7 +213,7 @@ static void ParseThemeIcons(DArray *icons, const char *theme)
                 XDGIconDir *icon = IconCreate(section, type, context, size, min_size, max_size, scale, threshold);
                 if (icon != NULL)
                 {
-                    DArrayAdd(icons, icon);
+                    DArrayAdd(theme->icon_dirs, icon);
                 }
 
                 scale = 1;
@@ -306,14 +327,12 @@ static void IndexSingleIconDir(XDGIconDir *icon_dir, const char *theme_path)
             if (valid_ext)
             {
                 char full_path[768];
-                //char name[128];
-                //strlcpy(name, entry->d_name, sizeof(name));
-                //char *pos = strrchr(name, '.');
-                //*pos = '\0';
-                snprintf(full_path, sizeof(full_path), "%s/%s", directory_path, entry->d_name);
-                // Modifying d_name is undefined behavior, but were not reusing it so it should be fine, plus it's faster
-                *ext = '\0';
-                HashMapInsert(icon_dir->icons, entry->d_name, full_path);
+                char name[128];
+                strlcpy(name, entry->d_name, sizeof(name));
+                snprintf(full_path, sizeof(full_path), "%s/%s", directory_path, name);
+                char *pos = strrchr(name, '.');
+                *pos = '\0';
+                HashMapInsert(icon_dir->icons, name, full_path);
                 file_count++;
             }
         }
@@ -331,9 +350,8 @@ IconTheme *LoadIconTheme(const char *theme_name)
     IconTheme *theme = malloc(sizeof(*theme));
     theme->name = strdup(theme_name);
     theme->icon_dirs = DArrayCreate(64);
-
-    theme->num_icons = 0;
-    ParseThemeIcons(theme->icon_dirs, theme_name);
+    theme->parents = DArrayCreate(8);
+    ParseThemeIcons(theme);
     DArraySort(theme->icon_dirs, IconDirCmp);
 
     //printf("\n");
@@ -345,6 +363,9 @@ IconTheme *LoadIconTheme(const char *theme_name)
 void UnLoadIconTheme(IconTheme *icon_theme)
 {
     //HashMapDestroy(icon_theme->icon_index);
+    //if (icon_theme->parents != NULL)
+    DArrayDestroy(icon_theme->parents, free);
+
     DArrayDestroy(icon_theme->icon_dirs, IconDestroy);
     free(icon_theme->name);
     free(icon_theme);
@@ -502,11 +523,11 @@ static bool LookupIconBackup(XDGIconDir *icon_dir, const char *icon_name, const 
     char icon_path[512];
     const char *icon_exts[] = {".png", ".svg", ".xpm"};
     const int num_exts = 3;
-    for (int j = 0; j < num_exts; j++)
+    for (int i = 0; i < num_exts; i++)
     {
         // Create the full path.
         // Seems like one big snprintf call is faster then mutliple strlcpy and strlcat calls
-        snprintf(icon_path, sizeof(icon_path), "%s/%s/%s%s", theme_path, icon_dir->path, icon_name, icon_exts[j]);
+        snprintf(icon_path, sizeof(icon_path), "%s/%s/%s%s", theme_path, icon_dir->path, icon_name, icon_exts[i]);
 
         if (access(icon_path, F_OK) == 0)
         {
@@ -801,12 +822,103 @@ char *LookupFallbackIcon(const char *icon)
     return NULL;
 }
 
+
+int PreloadIconThemes(const char *theme)
+{
+    IconTheme *icon_theme = LoadIconTheme(theme);
+
+    if (icon_theme == NULL)
+        return -1;
+
+    themes = DArrayCreate(8);
+    DArrayAdd(themes, icon_theme);
+
+    if (icon_theme->parents->size != 0)
+    {
+        for (int i = 0; i < icon_theme->parents->size; i++)
+        {
+            char *parent = icon_theme->parents->data[i];
+
+            IconTheme *parent_theme = LoadIconTheme(parent);
+            if (parent_theme != NULL)
+                DArrayAdd(themes, parent_theme);
+        }
+    }
+
+    return 0;
+}
+
+int PreloadIconThemesFast(const char *theme)
+{
+    IconTheme *icon_theme = LoadIconTheme(theme);
+
+    if (icon_theme == NULL)
+        return -1;
+
+    IconTheme *default_theme = LoadIconTheme("hicolor");
+    if (default_theme == NULL)
+        return -1;
+
+    themes = DArrayCreate(4);
+    DArrayAdd(themes, icon_theme);
+    DArrayAdd(themes, default_theme);
+
+    return 0;
+}
+
+void DestroyIconThemes(void)
+{
+    if (themes == NULL)
+        return;
+
+    DArrayDestroy(themes, (void*)UnLoadIconTheme);
+}
+
+char *SearchIconInThemes(const char *icon, int size, int scale, int max_theme_depth)
+{
+    int themes_to_search = max_theme_depth;
+    if (max_theme_depth == 0)
+        themes_to_search = themes->size;
+
+    for (int i = 0; i < themes_to_search; i++)
+    {
+        IconTheme *theme = themes->data[i];
+    
+        char *filename = LookupIcon(theme, icon, size, scale);
+        if (filename != NULL)
+        {
+            return filename;
+        }
+    }
+
+    return NULL;
+}
+
+static int ThemeNameCmp(const void *a, const void *b)
+{
+    const IconTheme *theme = a;
+    const char *theme_name = b;
+
+    return strcmp(theme->name, theme_name) == 0;
+}
+
+char *SearchIconInTheme(const char *theme_name, const char *icon, int size, int scale)
+{
+    IconTheme *theme = DArrayLinearSearch(themes, theme_name, ThemeNameCmp);
+    if (theme != NULL)
+    {
+        return LookupIcon(theme, icon, size, scale);
+    }
+
+    return NULL;
+}
+
 char *FindIconHelper(const char *icon, int size, int scale, const char *theme)
 {
     IconTheme *icon_theme = LoadIconTheme(theme);
 
     if (icon_theme == NULL)
-        return  NULL;
+        return NULL;
 
     char *filename = LookupIcon(icon_theme, icon, size, scale);
     if (filename != NULL)
@@ -815,17 +927,17 @@ char *FindIconHelper(const char *icon, int size, int scale, const char *theme)
         return filename;
     }
 
-    /*
-    if icon_theme->has_parents
-        parents = theme.parents
-
-    for (parent in parents)
+    if (icon_theme->parents->size != 0)
     {
-        filename = FindIconHelper (icon, size, scale, parent)
-        if filename != none
-            return filename
+        for (int i = 0; i < icon_theme->parents->size; i++)
+        {
+            char *parent = icon_theme->parents->data[i];
+            filename = FindIconHelper(icon, size, scale, parent);
+            if (filename != NULL)
+                return filename;
+        }
     }
-    */
+
 
     UnLoadIconTheme(icon_theme);
     return NULL;
@@ -842,12 +954,6 @@ char *FindIcon(const char *icon, int size, int scale)
         goto success;
     }
 
-    filename = FindIconHelper(icon, size, scale, "hicolor");
-    if (filename != NULL)
-    {
-        goto success;
-    }
-
     //return LookupFallbackIcon(icon);
     //free(theme);
     return NULL;
@@ -857,72 +963,22 @@ success:
     return filename;
 }
 
-HashMap *FindAllIcons(List *icons, int size, int scale)
+static void SearchAndStoreIconHelper(HashMap *icons, const char *icon, int size, int scale)
 {
-    char theme[256] = "\0";
-    int found = GetCurrentGTKIconThemeName(theme);
-    if (found != 0 || theme[0] == '\0')
-    {
-        printf("Failed to get GTK icon theme name!\n");
-        return NULL;
-    }
+    // TEST
+    //char *filename = SearchIconInTheme("hicolor", icon, size, scale);
 
-    IconTheme *icon_theme = LoadIconTheme(theme);
-    IconTheme *default_theme = LoadIconTheme("hicolor");
-    HashMap *valid_icons = HashMapCreate();
-    Node *current = icons->head;
-    while (current != NULL)
-    {
-        const char *icon = (char*)current->data;
-        char *filename = LookupIcon(icon_theme, icon, size, scale);
-        if (filename != NULL)
-        {
-            HashMapInsert(valid_icons, icon, filename);
-            //ListAdd(valid_icons, filename, strlen(filename) + 1);
-        }
-        else
-        {
-            filename = LookupIcon(default_theme, icon, size, scale);
-            if (filename != NULL)
-            {
-                HashMapInsert(valid_icons, icon, filename);
-                //ListAdd(valid_icons, filename, strlen(filename) + 1);
-            }
-        }
-        free(filename);
-        current = current->next;
-    }
+    char *filename = SearchIconInThemes(icon, size, scale, 0);
 
-    //free(theme);
-    UnLoadIconTheme(icon_theme);
-    UnLoadIconTheme(default_theme);
-    //return LookupFallbackIcon(icon);
-    return valid_icons;
-}
-
-static void SearchAndStoreIconHelper(HashMap *icons, IconTheme *icon_theme, IconTheme *default_theme, const char *icon, int size, int scale)
-{
-    char *filename = LookupIcon(icon_theme, icon, size, scale);
     if (filename != NULL)
     {
         HashMapInsert(icons, icon, filename);
+        free(filename);
     }
-    else
-    {
-        filename = LookupIcon(default_theme, icon, size, scale);
-        if (filename != NULL)
-        {
-            HashMapInsert(icons, icon, filename);
-        }
-    }
-
-    free(filename);
 }
 
 typedef struct
 {
-    IconTheme *icon_theme;
-    IconTheme *default_theme;
     HashMap *valid_icons;
     int size;
     int scale;
@@ -934,7 +990,7 @@ static void SearchAndStoreIcon(void *entry_ptr, void *args_ptr)
     Args *args = args_ptr;
     const char *icon = entry->icon;
 
-    SearchAndStoreIconHelper(args->valid_icons, args->icon_theme, args->default_theme, icon, args->size, args->scale);
+    SearchAndStoreIconHelper(args->valid_icons, icon, args->size, args->scale);
 }
 
 HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
@@ -951,26 +1007,16 @@ HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
         return NULL;
     }
 
-    IconTheme *icon_theme = LoadIconTheme(theme);
-    if (icon_theme == NULL)
+    if (PreloadIconThemesFast(theme) != 0)
     {
         printf("Failed to load current GTK icon theme!\n");
         return NULL;
-    }
-
-    IconTheme *default_theme = LoadIconTheme("hicolor");
-    if (default_theme == NULL)
-    {
-        printf("Failed to load default GTK icon theme!\n");
-        return NULL;
-    }
+    } 
 
     HashMap *valid_icons = HashMapCreate();
 
     Args args =
     {
-        .icon_theme = icon_theme,
-        .default_theme = default_theme,
         .valid_icons = valid_icons,
         .size = size,
         .scale = scale        
@@ -980,27 +1026,22 @@ HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
     BSTInOrderTraverse(entries, SearchAndStoreIcon, &args);
 
     // Extra icons, should put this in a for loop
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-multimedia", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-development", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-education", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-games", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-graphics", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-internet", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-office", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-science", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "preferences-desktop", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-system", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "applications-utilities", size, scale);
+    
+    SearchAndStoreIconHelper(valid_icons, "applications-multimedia", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "applications-development", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "applications-education", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "applications-games", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "applications-graphics", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "applications-internet", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "applications-office", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "applications-science", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "preferences-desktop", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "applications-system", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "applications-utilities", size, scale);
 
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "system-search", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "view-refresh", size, scale);
-    SearchAndStoreIconHelper(valid_icons, icon_theme, default_theme, "system-log-out", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "system-search", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "view-refresh", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "system-log-out", size, scale);
 
-    DEBUG_LOG("\nStored %d icons in %s theme\n", icon_theme->num_icons, icon_theme->name);
-    DEBUG_LOG("Stored %d icons in %s theme\n\n", default_theme->num_icons, default_theme->name);
-
-    UnLoadIconTheme(icon_theme);
-    UnLoadIconTheme(default_theme);
-    //return LookupFallbackIcon(icon);
     return valid_icons;
 }

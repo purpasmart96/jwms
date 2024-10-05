@@ -77,9 +77,8 @@ typedef struct
 typedef struct
 {
     DArray *icon_dirs;
-    int num_icons;
     char *name;
-    //char  **parents;
+    DArray *parents;
     //bool valid;
     //char **gtk_caches;
 } IconTheme;
@@ -91,10 +90,14 @@ int GetCurrentGTKIconThemeName(char theme_name[]);
 char *LookupIcon2(IconTheme *theme, const char *icon_name, int size, int scale);
 char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale);
 char *FindIcon(const char *icon, int size, int scale);
-//List *FindAllIcons(List *icons, int size, int scale);
 HashMap *FindAllIcons(List *icons, int size, int scale);
 HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale);
 
+int PreloadIconThemes(const char *theme);
+int PreloadIconThemesFast(const char *theme);
+void DestroyIconThemes(void);
+char *SearchIconInThemes(const char *icon, int size, int scale, int max_theme_depth);
+char *SearchIconInTheme(const char *theme_name, const char *icon, int size, int scale);
 //XDGIcon *LookupIconHelper(XDGIcon *icon_dir_info, char *icon_name, char *theme);
 
 #endif
