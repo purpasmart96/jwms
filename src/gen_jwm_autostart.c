@@ -20,7 +20,7 @@
 
 static void WriteAutostartProgram(FILE *fp, int sleep_time, bool kill, bool fork, const char *program, const char *args)
 {
-    printf("program: %s\n", program);
+    DEBUG_LOG("program: %s\n", program);
     if (kill)
         WRITE_CFG("pkill %s\n", program);
 
@@ -89,14 +89,14 @@ int CreateJWMAutoStart(JWM *jwm, cfg_t *cfg)
     WRITE_CFG("#!/bin/bash\n\n");
 
     int n = cfg_size(cfg, "autostart");
-	printf("\nFound %d autostart tasks:\n", n);
+	DEBUG_LOG("\nFound %d autostart tasks:\n", n);
 
 	for (int i = 0; i < n; i++)
     {
 		cfg_t *autostart = cfg_getnsec(cfg, "autostart", i);
 
         const char *title = cfg_title(autostart);
-        printf("autostart %u: %s\n", i + 1, title);
+        DEBUG_LOG("autostart %u: %s\n", i + 1, title);
 
         int sleep_time = cfg_getint(autostart, "sleep_time");
         bool fork = cfg_getbool(autostart, "fork_needed");

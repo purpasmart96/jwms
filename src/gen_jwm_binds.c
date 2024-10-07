@@ -67,7 +67,7 @@ int CreateJWMBinds(JWM *jwm, cfg_t *cfg)
     WRITE_CFG("<JWM>\n");
 
     int n = cfg_size(cfg, "keybind");
-	printf("\nFound %d keybinds:\n", n);
+	DEBUG_LOG("\nFound %d keybinds:\n", n);
 
 	for (int i = 0; i < n; i++)
     {
@@ -75,7 +75,7 @@ int CreateJWMBinds(JWM *jwm, cfg_t *cfg)
 
         int num_mods = cfg_size(keybind, "mods");
         const char *title = cfg_title(keybind);
-        printf("keybind %u: %s\n", i + 1, title);
+        DEBUG_LOG("keybind %u: %s\n", i + 1, title);
         const char *key = cfg_getstr(keybind, "key");
         const char *cmd = cfg_getstr(keybind, "command");
 
@@ -91,12 +91,12 @@ int CreateJWMBinds(JWM *jwm, cfg_t *cfg)
             continue;
         }
 
-        printf("key: %s\n", key);
+        DEBUG_LOG("key: %s\n", key);
 
         for (int j = 0; j < num_mods; j++)
         {
             char *in_keymod = cfg_getnstr(keybind,"mods", j);
-            printf("keymod %d: %s\n", j, in_keymod);
+            DEBUG_LOG("keymod %d: %s\n", j, in_keymod);
             char *out_keymod = GetJWMKeyMod(in_keymod);
 
             if (out_keymod == NULL)
@@ -108,7 +108,7 @@ int CreateJWMBinds(JWM *jwm, cfg_t *cfg)
             strlcat(keymods, out_keymod, sizeof(keymods));
         }
 
-        printf("command: %s\n\n", cmd);
+        DEBUG_LOG("command: %s\n\n", cmd);
 
         if (!num_mods)
         {
