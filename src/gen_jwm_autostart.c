@@ -67,7 +67,6 @@ static void WriteAutostartProgram(FILE *fp, int sleep_time, bool kill, bool fork
 int CreateJWMAutoStart(JWM *jwm, cfg_t *cfg)
 {
     char path[512];
-    char keymods[64];
     const char *fname = "autostart";
 
     strlcpy(path, jwm->autogen_config_path, sizeof(path));

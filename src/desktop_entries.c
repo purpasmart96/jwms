@@ -98,7 +98,7 @@ static XDGAdditionalCategories GetXDGAdditionalCategoryType(const char *category
     return IgnoredOrInvalid;
 }
 
-static XDGDesktopEntry *CreateEmptyEntry()
+static XDGDesktopEntry *CreateEmptyEntry(void)
 {
     XDGDesktopEntry *entry = malloc(sizeof(*entry));
 
