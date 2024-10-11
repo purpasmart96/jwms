@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <getopt.h>
 
 #include <bsd/string.h>
 #include <confuse.h>
@@ -38,19 +39,36 @@ static void Usage(void)
 static void Help(void)
 {
     printf("Options:\n"
-            "  --all          Generate all JWM files\n"
-            "  --autostart    Generate the JWM autostart script\n"
-            "  --binds        Generate the JWM keybinds\n"
-            "  --groups       Generate the JWM program groups\n"
-            "  --icons        Generate the JWM icon paths\n"
-            "  --jwmrc        Generate the JWM rc file\n"
-            "  --menu         Generate the JWM rootmenu\n"
-            "  --prefs        Generate the JWM preference\n"
-            "  --styles       Generate the JWM styles\n"
-            "  --tray         Generate the JWM tray\n"
-            "  --help         Display this information\n"
-            "  --version      Display version information\n");
+            "  -h, --help         Display this information\n"
+            "  -v, --version      Display version information\n"
+            "  -a, --all          Generate all JWM files\n"
+            "  -A, --autostart    Generate the JWM autostart script\n"
+            "  -b, --binds        Generate the JWM keybinds\n"
+            "  -g, --groups       Generate the JWM program groups\n"
+            "  -i, --icons        Generate the JWM icon paths\n"
+            "  -j, --jwmrc        Generate the JWM rc file\n"
+            "  -m, --menu         Generate the JWM rootmenu\n"
+            "  -p, --prefs        Generate the JWM preference\n"
+            "  -s, --styles       Generate the JWM styles\n"
+            "  -t, --tray         Generate the JWM tray\n");
 }
+
+static const struct option long_opts[] =
+{
+    {"help",      no_argument, 0, 'h'},
+    {"version",   no_argument, 0, 'v'},
+    {"all",       no_argument, 0, 'a'},
+    {"autostart", no_argument, 0, 'A'}, 
+    {"binds",     no_argument, 0, 'b'},
+    {"groups",    no_argument, 0, 'g'},
+    {"icons",     no_argument, 0, 'i'},
+    {"jwmrc",     no_argument, 0, 'j'},
+    {"menu",      no_argument, 0, 'm'},
+    {"prefs",     no_argument, 0, 'p'},
+    {"styles",    no_argument, 0, 's'},
+    {"tray",      no_argument, 0, 't'},
+    {0, 0, 0, 0}  // terminator
+};
 
 static int LoadAllDesktopEntries(BTreeNode **entries)
 {
@@ -168,78 +186,68 @@ static void CleanUp(JWM *jwm, cfg_t *cfg, HashMap *icons, BTreeNode *entries)
         cfg_free(cfg);
 }
 
-int HandleCmd(const char *cmd, JWM *jwm, cfg_t *cfg, BTreeNode **entries, HashMap **icons)
+int HandleCmd(int opt, JWM *jwm, cfg_t *cfg, BTreeNode **entries, HashMap **icons)
 {
-    if (strcmp(cmd, "--all") == 0)
+    switch (opt)
     {
-        if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
+        case 'a': // --all
         {
-            return EXIT_FAILURE;
+            if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
+            {
+                return EXIT_FAILURE;
+            }
+            if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
+            {
+                return EXIT_FAILURE;
+            }
+            return GenerateAll(jwm, cfg, *entries, *icons);
         }
-        if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
-        {
-            return EXIT_FAILURE;
-        }
-        return GenerateAll(jwm, cfg, *entries, *icons);
-    }
-    else if (strcmp(cmd, "--autostart") == 0)
-    {
-        return CreateJWMAutoStart(jwm, cfg);
-    }
-    else if (strcmp(cmd, "--binds") == 0)
-    {
-        return CreateJWMBinds(jwm, cfg);
-    }
-    else if (strcmp(cmd, "--groups") == 0)
-    {
-        return CreateJWMGroup(jwm);
-    }
-    else if (strcmp(cmd, "--icons") == 0)
-    {
-        return CreateJWMIcons(jwm);
-    }
-    else if (strcmp(cmd, "--jwmrc") == 0)
-    {
-        return CreateJWMRCFile(jwm);
-    }
-    else if (strcmp(cmd, "--menu") == 0)
-    {
-        if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
-        {
-            return EXIT_FAILURE;
-        }
-        if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
-        {
-            return EXIT_FAILURE;
-        }
-        return CreateJWMRootMenu(jwm, *entries, *icons, NULL);
-    }
-    else if (strcmp(cmd, "--prefs") == 0)
-    {
-        return CreateJWMPreferences(jwm);
-    }
-    else if (strcmp(cmd, "--styles") == 0)
-    {
-        return CreateJWMStyles(jwm);
-    }
-    else if (strcmp(cmd, "--tray") == 0)
-    {
-        if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
-        {
-            return EXIT_FAILURE;
-        }
-        if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
-        {
-            return EXIT_FAILURE;
-        }
-        return CreateJWMTray(jwm, *entries, *icons);
-    }
+        case 'A': // --autostart
+            return CreateJWMAutoStart(jwm, cfg);
 
-    printf("Unknown option: %s.\n", cmd);
-    Usage();
-    Help();
+        case 'b': // --binds
+            return CreateJWMBinds(jwm, cfg);
 
-    return EXIT_FAILURE;
+        case 'g': // --groups
+            return CreateJWMGroup(jwm);
+
+        case 'i': // --icons
+            return CreateJWMIcons(jwm);
+
+        case 'j': // --jwmrc
+            return CreateJWMRCFile(jwm);
+
+        case 'm': // --menu
+            if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
+            {
+                return EXIT_FAILURE;
+            }
+            if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
+            {
+                return EXIT_FAILURE;
+            }
+            return CreateJWMRootMenu(jwm, *entries, *icons, NULL);
+
+        case 'p': // --prefs
+            return CreateJWMPreferences(jwm);
+
+        case 's': // --styles
+            return CreateJWMStyles(jwm);
+
+        case 't': // --tray
+            if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
+            {
+                return EXIT_FAILURE;
+            }
+            if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
+            {
+                return EXIT_FAILURE;
+            }
+            return CreateJWMTray(jwm, *entries, *icons);
+
+        default:
+            return EXIT_FAILURE;
+    }
 }
 
 int main(int argc, char *argv[])
@@ -256,39 +264,42 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    for (int i = 1; i < argc; i++)
+    // Handle help and version options explicitly first
+    int opt;
+    int index = 0;
+    while ((opt = getopt_long(argc, argv, "hvaAbgijmpst", long_opts,
+            &index)) != -1)
     {
-        char *cmd = argv[i];
-
-        if (strcmp(cmd, "--help") == 0)
+        switch (opt)
         {
-            Help();
-            return EXIT_SUCCESS;
+            case 'h': // --help
+                Help();
+                return EXIT_SUCCESS;
+
+            case 'v': // --version
+                About();
+                return EXIT_SUCCESS;
+            case '?':
+                Usage();
+                Help();
+                return EXIT_FAILURE;
+
+            default:
+                if (InitializeConfig(&jwm, &cfg) != 0)
+                {
+                    CleanUp(jwm, cfg, icons, entries);
+                    return EXIT_FAILURE;
+                }
+    
+                if (HandleCmd(opt, jwm, cfg, &entries, &icons) != 0)
+                {
+                    CleanUp(jwm, cfg, icons, entries);
+                    return EXIT_FAILURE;
+                }
         }
 
-        if (strcmp(cmd, "--version") == 0)
-        {
-            About();
-            return EXIT_SUCCESS;
-        }
-
-        if (InitializeConfig(&jwm, &cfg) != 0)
-        {
-            CleanUp(jwm, cfg, icons, entries);
-            return EXIT_FAILURE;
-        }
-
-        if (HandleCmd(cmd, jwm, cfg, &entries, &icons) != 0)
-        {
-            CleanUp(jwm, cfg, icons, entries);
-            return EXIT_FAILURE;
-        }
-
-        // Exit when --all is finished
-        if (strcmp(cmd, "--all") == 0)
-        {
+        if (opt == 'a')
             break;
-        }
     }
 
     CleanUp(jwm, cfg, icons, entries);
