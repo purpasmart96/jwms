@@ -89,7 +89,7 @@ static float GetValidOpacity(float opacity)
 
 static int GetValidDefaultIconSize(int icon_size)
 {
-    if (!MultiplesOf8(icon_size))
+    if (!IsMultiplesOf8(icon_size))
     {
         printf("global_preferred_icon_size is not mutliple of 8!\nUsing the default value of 32\n");
         icon_size = 32;

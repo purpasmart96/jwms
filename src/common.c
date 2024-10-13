@@ -148,13 +148,26 @@ int ExpandPath(char *expanded_path, const char *path, size_t buffer_size)
     return 0;
 }
 
-bool PowerOfTwo(size_t x)
+bool IsPowerOfTwo(size_t x)
 {
     return (x != 0) && ((x & (x - 1)) == 0);
 }
 
-bool MultiplesOf8(size_t x)
+bool IsMultiplesOf8(size_t x)
 {
     // Equivalent to x % 8 == 0
     return (x & 7) == 0;
+}
+
+unsigned int PowerOfTwoFloorBranchless(unsigned int n)
+{
+    // Spread the highest bit to the right for all bits lower than it
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+
+    // Clear all bits except the most significant one
+    return n - (n >> 1);
 }
