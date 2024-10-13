@@ -70,17 +70,21 @@ void HashMapResize(HashMap *map)
         new_entries[i] = NULL;
     }
 
+    size_t mask = new_capacity - 1;
+    
     for (size_t i = 0; i < map->capacity; i++)
     {
-        if (map->entries[i] != NULL)
+        Key *entry = map->entries[i];
+        if (entry != NULL)
         {
-            size_t index = map->entries[i]->hash & (new_capacity - 1);
+            size_t index = entry->hash & mask;
+
             while (new_entries[index] != NULL)
             {
-                index = (index + 1) & (new_capacity - 1);
+                index = (index + 1) & mask;
             }
 
-            new_entries[index] = map->entries[i];
+            new_entries[index] = entry;
         }
     }
 
@@ -99,17 +103,21 @@ void HashMapResize2(HashMap2 *map)
         new_entries[i] = NULL;
     }
 
+    size_t new_mask = new_capacity - 1;
+
     for (size_t i = 0; i < map->capacity; i++)
     {
-        if (map->entries[i] != NULL)
+        Key2 *entry = map->entries[i];
+        if (entry != NULL)
         {
-            size_t index = map->entries[i]->hash & (new_capacity - 1);
+            size_t index = entry->hash & new_mask;
+
             while (new_entries[index] != NULL)
             {
-                index = (index + 1) & (new_capacity - 1);
+                index = (index + 1) & new_mask;
             }
 
-            new_entries[index] = map->entries[i];
+            new_entries[index] = entry;
         }
     }
 
@@ -126,9 +134,10 @@ void HashMapInsert(HashMap *map, const char *key, const char *value)
     }
 
     size_t hash = Hash(key);
-    char *temp_value = strdup(value);
+    size_t mask = map->capacity - 1;
+    size_t index = hash & mask;
 
-    size_t index = hash & (map->capacity - 1);
+    char *temp_value = strdup(value);
 
     while (map->entries[index] != NULL)
     {
@@ -143,7 +152,7 @@ void HashMapInsert(HashMap *map, const char *key, const char *value)
             return;
         }
         // Handle collision using Open Addressing (Linear Probing)
-        index = (index + 1) & (map->capacity - 1);
+        index = (index + 1) & mask;
     }
 
     Key *new_entry = malloc(sizeof(Key));
@@ -163,8 +172,8 @@ void HashMapInsert2(HashMap2 *map, const char *key, void *value)
     }
 
     size_t hash = Hash(key);
-
-    size_t index = hash & (map->capacity - 1);
+    size_t mask = map->capacity - 1;
+    size_t index = hash & mask;
 
     while (map->entries[index] != NULL)
     {
@@ -179,7 +188,7 @@ void HashMapInsert2(HashMap2 *map, const char *key, void *value)
             return;
         }
         // Handle collision using open addressing
-        index = (index + 1) & (map->capacity - 1);
+        index = (index + 1) & mask;
     }
 
     Key2 *new_entry = malloc(sizeof(Key2));
@@ -201,7 +210,8 @@ void HashMapInsertWithSection(HashMap *map, const char *section, const char *key
 const char *HashMapGet(HashMap *map, const char *key)
 {
     size_t hash = Hash(key);
-    size_t index = hash & (map->capacity - 1);
+    size_t mask = map->capacity - 1;
+    size_t index = hash & mask;
 
     while (map->entries[index] != NULL)
     {
@@ -210,7 +220,7 @@ const char *HashMapGet(HashMap *map, const char *key)
             return map->entries[index]->value;
         }
         // Handle collision using open addressing
-        index = (index + 1) & (map->capacity - 1);
+        index = (index + 1) & mask;
     }
 
     return NULL;
@@ -219,7 +229,8 @@ const char *HashMapGet(HashMap *map, const char *key)
 void *HashMapGet2(HashMap2 *map, const char *key)
 {
     size_t hash = Hash(key);
-    size_t index = hash & (map->capacity - 1);
+    size_t mask = map->capacity - 1;
+    size_t index = hash & mask;
 
     while (map->entries[index] != NULL)
     {
@@ -228,7 +239,7 @@ void *HashMapGet2(HashMap2 *map, const char *key)
             return map->entries[index]->value;
         }
         // Handle collision using open addressing
-        index = (index + 1) & (map->capacity - 1);
+        index = (index + 1) & mask;
     }
 
     return NULL;
