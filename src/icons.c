@@ -29,17 +29,20 @@
 //#define HYBRID_ICON_SEARCH 1
 
 static DArray *themes = NULL;
+static HashMap2 *themes2 = NULL;
+// Keys for fast searching of themes2
+static DArray *themes_names = NULL;
 
 static const Pair common_icon_sizes[] =
 {
-    {"48",  48 },
-    {"32",  32 },
-    {"24",  24 },
-    {"64",  64 },
-    {"16",  16 },
-    {"96",  96 },
-    {"128",  128 },
-    {"256",  256 },
+    {"48",  48  },
+    {"32",  32  },
+    {"24",  24  },
+    {"64",  64  },
+    {"16",  16  },
+    {"96",  96  },
+    {"128", 128 },
+    {"256", 256 }
 };
 
 static const Pair icon_types[] =
@@ -98,7 +101,7 @@ static void ParseInheritedThemes(IconTheme *theme, const char *inherits)
     char *theme_name = strtok_r(str_copy, ",", &reserved);
     while (theme_name != NULL)
     {
-        DEBUG_LOG("Found parent theme: %s\n", theme_name);
+        DEBUG_LOG("Found inherited theme: %s\n", theme_name);
         DArrayAdd(theme->parents, strdup(theme_name));
         theme_name = strtok_r(NULL, ",", &reserved);
     }
@@ -152,7 +155,6 @@ static void ParseThemeIcons(IconTheme *theme)
             sscanf(line, "[%127[^]]", section);
             //if (strcmp(section, "Icon Theme") != 0)
             //{
-                //ListAdd(dirs, section, strlen(section) + 1);
                 in_section = true;
                 continue;
             //}
@@ -404,6 +406,8 @@ static int ParseGtkThemeValue(const char *line, char *value)
     return 0;
 }
 
+// TODO: This is not very good, should parse the gtk3 icon theme instead since that's more common
+// Should also redo the parsing, it's not very good and throws warnings on older versions of gcc
 int GetCurrentGTKIconThemeName(char theme_name[])
 {
     char path[512];
@@ -848,6 +852,65 @@ int PreloadIconThemes(const char *theme)
     return 0;
 }
 
+int PreloadIconThemes2(const char *theme)
+{
+    IconTheme *icon_theme = LoadIconTheme(theme);
+
+    if (icon_theme == NULL)
+        return -1;
+
+    themes2 = HashMapCreate2((void*)UnLoadIconTheme, NULL);
+    HashMapInsert2(themes2, icon_theme->name, icon_theme);
+
+    if (icon_theme->parents->size != 0)
+    {
+        for (int i = 0; i < icon_theme->parents->size; i++)
+        {
+            char *parent = icon_theme->parents->data[i];
+
+            IconTheme *parent_theme = LoadIconTheme(parent);
+            if (parent_theme != NULL)
+                HashMapInsert2(themes2, parent, parent_theme);
+        }
+    }
+
+    return 0;
+}
+
+int PreloadIconThemes3(const char *theme)
+{
+    IconTheme *icon_theme = LoadIconTheme(theme);
+
+    if (icon_theme == NULL)
+        return -1;
+
+    if (themes2 == NULL)
+    {
+        themes2 = HashMapCreate2((void*)UnLoadIconTheme, NULL);
+        themes_names = DArrayCreate(8);
+    }
+
+    HashMapInsert2(themes2, theme, icon_theme);
+    DArrayAdd(themes_names, strdup(theme));
+
+    if (icon_theme->parents->size != 0)
+    {
+        for (int i = 0; i < icon_theme->parents->size; i++)
+        {
+            char *parent = icon_theme->parents->data[i];
+            if (HashMapGet2(themes2, parent) != NULL)
+            {
+                continue;
+            }
+
+            if (PreloadIconThemes3(parent) != 0)
+                continue;
+        }
+    }
+
+    return 0;
+}
+
 int PreloadIconThemesFast(const char *theme)
 {
     IconTheme *icon_theme = LoadIconTheme(theme);
@@ -868,10 +931,12 @@ int PreloadIconThemesFast(const char *theme)
 
 void DestroyIconThemes(void)
 {
-    if (themes == NULL)
+    if (themes2 == NULL)
         return;
 
-    DArrayDestroy(themes, (void*)UnLoadIconTheme);
+    //DArrayDestroy(themes, (void*)UnLoadIconTheme);
+    HashMapDestroy2(themes2);
+    DArrayDestroy(themes_names, free);
 }
 
 char *SearchIconInThemes(const char *icon, int size, int scale, int max_theme_depth)
@@ -894,6 +959,30 @@ char *SearchIconInThemes(const char *icon, int size, int scale, int max_theme_de
     return NULL;
 }
 
+char *SearchIconInThemes2(const char *icon, int size, int scale, int max_theme_depth)
+{
+    int themes_to_search = max_theme_depth;
+    if (max_theme_depth == 0)
+        themes_to_search = themes_names->size;
+
+    for (int i = 0; i < themes_to_search; i++)
+    {
+        char *theme_name = themes_names->data[i];
+    
+        IconTheme *theme = HashMapGet2(themes2, theme_name);
+        if (theme == NULL)
+            return NULL;
+
+        char *filename = LookupIcon(theme, icon, size, scale);
+        if (filename != NULL)
+        {
+            return filename;
+        }
+    }
+
+    return NULL;
+}
+
 static int ThemeNameCmp(const void *a, const void *b)
 {
     const IconTheme *theme = a;
@@ -902,9 +991,28 @@ static int ThemeNameCmp(const void *a, const void *b)
     return strcmp(theme->name, theme_name) == 0;
 }
 
+static int ThemeNameCmp2(const void *a, const void *b)
+{
+    const char *theme_name_a = a;
+    const char *theme_name_b = b;
+
+    return strcmp(theme_name_a, theme_name_b) == 0;
+}
+
 char *SearchIconInTheme(const char *theme_name, const char *icon, int size, int scale)
 {
     IconTheme *theme = DArrayLinearSearch(themes, theme_name, ThemeNameCmp);
+    if (theme != NULL)
+    {
+        return LookupIcon(theme, icon, size, scale);
+    }
+
+    return NULL;
+}
+
+char *SearchIconInTheme2(const char *theme_name, const char *icon, int size, int scale)
+{
+    IconTheme *theme = HashMapGet2(themes2, DArrayLinearSearch(themes_names, theme_name, ThemeNameCmp2));
     if (theme != NULL)
     {
         return LookupIcon(theme, icon, size, scale);
@@ -968,7 +1076,8 @@ static void SearchAndStoreIconHelper(HashMap *icons, const char *icon, int size,
     // TEST
     //char *filename = SearchIconInTheme("hicolor", icon, size, scale);
 
-    char *filename = SearchIconInThemes(icon, size, scale, 0);
+    char *filename = SearchIconInThemes2(icon, size, scale, 3);
+    //char *filename = SearchIconInThemes(icon, size, scale, 0);
 
     if (filename != NULL)
     {
@@ -1000,6 +1109,7 @@ HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
     //char *theme = GetCurrentGTKIconThemeName();
     //char *theme = "Papirus";
     //char *theme = "breeze-dark";
+    //char *theme = "Qogir";
     //int found = 0;
     if (found != 0 || theme[0] == '\0')
     {
@@ -1007,7 +1117,7 @@ HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
         return NULL;
     }
 
-    if (PreloadIconThemesFast(theme) != 0)
+    if (PreloadIconThemes3(theme) != 0)
     {
         printf("Failed to load current GTK icon theme!\n");
         return NULL;
@@ -1026,7 +1136,6 @@ HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
     BSTInOrderTraverse(entries, SearchAndStoreIcon, &args);
 
     // Extra icons, should put this in a for loop
-    
     SearchAndStoreIconHelper(valid_icons, "applications-multimedia", size, scale);
     SearchAndStoreIconHelper(valid_icons, "applications-development", size, scale);
     SearchAndStoreIconHelper(valid_icons, "applications-education", size, scale);

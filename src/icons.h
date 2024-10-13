@@ -97,6 +97,7 @@ int PreloadIconThemes(const char *theme);
 int PreloadIconThemesFast(const char *theme);
 void DestroyIconThemes(void);
 char *SearchIconInThemes(const char *icon, int size, int scale, int max_theme_depth);
+char *SearchIconInThemes2(const char *icon, int size, int scale, int max_theme_depth);
 char *SearchIconInTheme(const char *theme_name, const char *icon, int size, int scale);
 //XDGIcon *LookupIconHelper(XDGIcon *icon_dir_info, char *icon_name, char *theme);
 
