@@ -184,11 +184,17 @@ int CreateJWMPreferences(JWM *jwm)
 // There will only be one backup of the .jwmrc file
 int CreateJWMRCBackup(char *path, char *backup_path)
 {
+    if (access(backup_path, F_OK) == 0)
+    {
+        printf("%s already exists! Skipping creation of backup .jwmrc file!\n", backup_path);
+        return -1;
+    }
+
     FILE *fp = fopen(path, "r");
 
     if (fp == NULL)
     {
-        printf("%s does not exist! Skipping creation of backup!\n", path);
+        printf("%s does not exist! Skipping creation of backup .jwmrc file!\n", path);
         return -1;
     }
 
