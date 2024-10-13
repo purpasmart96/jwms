@@ -1076,7 +1076,7 @@ static void SearchAndStoreIconHelper(HashMap *icons, const char *icon, int size,
     // TEST
     //char *filename = SearchIconInTheme("hicolor", icon, size, scale);
 
-    char *filename = SearchIconInThemes2(icon, size, scale, 3);
+    char *filename = SearchIconInThemes2(icon, size, scale, 0);
     //char *filename = SearchIconInThemes(icon, size, scale, 0);
 
     if (filename != NULL)
