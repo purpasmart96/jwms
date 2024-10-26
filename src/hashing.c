@@ -253,7 +253,7 @@ void HashMapPrint(HashMap *map)
         if (map->entries[i] != NULL)
         {
             printf("Key      : %s\n", map->entries[i]->key);
-            printf("Key Hash : 0x%08lX\n", map->entries[i]->hash);
+            printf("Key Hash : 0x%08zX\n", map->entries[i]->hash);
             printf("Value    : %s\n\n", map->entries[i]->value);
         }
     }
@@ -269,7 +269,7 @@ void HashMapPrint2(HashMap2 *map)
         if (map->entries[i] != NULL)
         {
             printf("Key      : %s\n", map->entries[i]->key);
-            printf("Key Hash : 0x%08lX\n", map->entries[i]->hash);
+            printf("Key Hash : 0x%08zX\n", map->entries[i]->hash);
             //printf("Value    : %s\n\n", map->entries[i]->value);
             map->PrintCallback(map->entries[i]->value);
         }
