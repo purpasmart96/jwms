@@ -7,11 +7,16 @@
 
 #include "darray.h"
 
-DArray *DArrayCreate(size_t capacity)
+DArray *DArrayCreate(size_t capacity, void (*DestroyCallback)(void*),
+                    int (*SearchCompareCallback)(const void *, const void *),
+                    int (*SortCompareCallback)(const void *, const void *))
 {
     DArray *darray = malloc(sizeof(*darray));
     darray->capacity = capacity;
     darray->data = malloc(sizeof(void*) * darray->capacity);
+    darray->DestroyCallback = DestroyCallback;
+    darray->SearchCompareCallback = SearchCompareCallback;
+    darray->SortCompareCallback = SortCompareCallback;
     darray->size = 0;
     darray->dirty = true;
 
@@ -41,11 +46,11 @@ void **DArrayResize(DArray *darray, size_t capacity)
     return new_array;
 }
 
-void DArrayDestroy(DArray *darray, void (*DestroyCallback)(void*))
+void DArrayDestroy(DArray *darray)
 {
     for (size_t i = 0; i < darray->size; i++)
     {
-        DestroyCallback(darray->data[i]);
+        darray->DestroyCallback(darray->data[i]);
     }
 
     free(darray->data);
@@ -78,11 +83,11 @@ int DArrayAdd(DArray *darray, void *element)
     return 0;
 }
 
-void *DArrayLinearSearch(DArray *darray, const void *target, int (*CompareCallback)(const void*, const void*))
+void *DArrayLinearSearch(DArray *darray, const void *target)
 {
     for (size_t i = 0; i < darray->size; i++)
     {
-        if (CompareCallback(darray->data[i], target))
+        if (darray->SearchCompareCallback(darray->data[i], target))
         {
             return darray->data[i];
         }
@@ -91,7 +96,7 @@ void *DArrayLinearSearch(DArray *darray, const void *target, int (*CompareCallba
     return NULL;
 }
 
-void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallback)(const void*, const void*))
+void *DArrayBinarySearch(DArray *darray, const void *target)
 {
     if (darray->dirty)
         return NULL;
@@ -103,7 +108,7 @@ void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallba
         size_t mid = left + (right - left) / 2;
         void *index = darray->data[mid];
 
-        int cmp = CompareCallback(index, target);
+        int cmp = darray->SearchCompareCallback(index, target);
         if (cmp == 0)
         {
             return index;
@@ -121,28 +126,57 @@ void *DArrayBinarySearch(DArray *darray, const void *target, int (*CompareCallba
     return NULL;
 }
 
-void *DArraySearch(DArray *darray, const void *target, int (*CompareCallback)(const void*, const void*))
+void *DArraySearch(DArray *darray, const void *target)
 {
     // Linear searches are faster when N is smaller
     if (darray->dirty || darray->size < 128)
-        return DArrayLinearSearch(darray, target, CompareCallback);
-    return DArrayBinarySearch(darray, target, CompareCallback);
+        return DArrayLinearSearch(darray, target);
+    return DArrayBinarySearch(darray, target);
 }
 
-void DArraySort(DArray *darray, int (*CompareCallback)(const void*, const void*))
+void DArraySort(DArray *darray)
 {
-    qsort(darray->data, darray->size, sizeof(void*), CompareCallback);
+    qsort(darray->data, darray->size, sizeof(void*), darray->SortCompareCallback);
     darray->dirty = false;
 }
 
-bool DArrayContains(DArray *darray, const void *item, int (*SortCompareCallback)(const void*, const void*), int (*SearchCompareCallback)(const void*, const void*))
+bool DArrayContains(DArray *darray, const void *item)
 {
     if (darray->dirty)
     {
-        DArraySort(darray, SortCompareCallback);
+        DArraySort(darray);
     }
 
-    return DArrayBinarySearch(darray, item, SearchCompareCallback) != NULL ? true : false;
+    return DArrayBinarySearch(darray, item) != NULL ? true : false;
+}
+
+// O(n^2)
+void DArrayFindDupes(DArray *darray, const void *item)
+{
+    void** res[darray->size];
+    for (size_t i = 0; i < darray->size - 1; i++)
+    {
+        for (size_t j = i + 1; j < darray->size; j++)
+        {
+            if (darray->data[i] == darray->data[j])
+            {
+
+            }
+        }
+    }
+}
+
+// O(n)
+void DArrayRemoveDupes(DArray *darray)
+{
+    DArraySort(darray);
+    for (size_t i = 0; i < darray->size - 1; i++)
+    {
+        if (darray->data[i] == darray->data[i + 1])
+        {
+
+        }
+    }
 }
 
 // Not Tested

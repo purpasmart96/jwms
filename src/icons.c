@@ -28,9 +28,11 @@
 #define MULTIPHASE_ICON_SEARCH 1
 //#define HYBRID_ICON_SEARCH 1
 
+// Old method, has dupes
 static DArray *themes = NULL;
-static HashMap2 *themes2 = NULL;
-// Keys for fast searching of themes2
+
+static HashMap2 *themes_map = NULL;
+// Keys for fast searching of themes_map
 static DArray *themes_names = NULL;
 
 static const Pair common_icon_sizes[] =
@@ -351,10 +353,11 @@ IconTheme *LoadIconTheme(const char *theme_name)
 {
     IconTheme *theme = malloc(sizeof(*theme));
     theme->name = strdup(theme_name);
-    theme->icon_dirs = DArrayCreate(64);
-    theme->parents = DArrayCreate(8);
+    theme->icon_dirs = DArrayCreate(64, (void*)IconDestroy, NULL, IconDirCmp);
+    theme->parents = DArrayCreate(8, free, NULL, NULL);
+
     ParseThemeIcons(theme);
-    DArraySort(theme->icon_dirs, IconDirCmp);
+    DArraySort(theme->icon_dirs);
 
     //printf("\n");
     //DArrayPrint(theme->icons, IconPrint);
@@ -366,9 +369,9 @@ void UnLoadIconTheme(IconTheme *icon_theme)
 {
     //HashMapDestroy(icon_theme->icon_index);
     //if (icon_theme->parents != NULL)
-    DArrayDestroy(icon_theme->parents, free);
+    DArrayDestroy(icon_theme->parents);
+    DArrayDestroy(icon_theme->icon_dirs);
 
-    DArrayDestroy(icon_theme->icon_dirs, IconDestroy);
     free(icon_theme->name);
     free(icon_theme);
 }
@@ -408,7 +411,7 @@ static int ParseGtkThemeValue(const char *line, char *value)
 
 // TODO: This is not very good, should parse the gtk3 icon theme instead since that's more common
 // Should also redo the parsing, it's not very good and throws warnings on older versions of gcc
-int GetCurrentGTKIconThemeName(char theme_name[])
+int GetCurrentGTKIconThemeName(char *theme_name)
 {
     char path[512];
 
@@ -543,58 +546,63 @@ static bool LookupIconBackup(XDGIconDir *icon_dir, const char *icon_name, const 
     return false;
 }
 
-static char *LookupIconExactSize(IconTheme *theme, const char *icon_name, int size, int scale)
+static size_t FindSubdirsWithSize(IconTheme *theme, int size, int *found_dirs)
 {
     char icon_size[4];
     snprintf(icon_size, sizeof(icon_size), "%d", size);
 
     size_t found = 0;
 
-    int index_array[theme->icon_dirs->size];
-
     for (size_t i = 0; i < theme->icon_dirs->size; i++)
     {
         if (IconDirCmpSubStr(theme->icon_dirs->data[i], icon_size))
         {
-            index_array[found++] = i;
+            found_dirs[found++] = i;
         }
     }
 
-    if (found != 0)
+    return found;
+}
+
+static char *LookupIconExactSize(IconTheme *theme, const char *icon_name, int size, int scale)
+{
+    int index_array[theme->icon_dirs->size];
+    size_t found = FindSubdirsWithSize(theme, size, index_array);
+
+    // No valid subdirs were found
+    if (!found)
     {
-        // Build partial path
-        const char *base_dir = "/usr/share/icons";
-        char theme_dir[256];
-        snprintf(theme_dir, sizeof(theme_dir), "%s/%s", base_dir, theme->name);
+        return NULL;
+    }
 
-        for (size_t i = 0; i < found; i++)
+    // Build partial path
+    const char *base_dir = "/usr/share/icons";
+    char theme_dir[256];
+    snprintf(theme_dir, sizeof(theme_dir), "%s/%s", base_dir, theme->name);
+
+    for (size_t i = 0; i < found; i++)
+    {
+        int curr_index = index_array[i];
+        XDGIconDir *curr_icon_dir = theme->icon_dirs->data[curr_index];
+        // Check if the directory is indexed, if not, try to index it
+        if (curr_icon_dir->index_state == NotIndexed)
         {
-            int curr_index = index_array[i];
-            XDGIconDir *curr_icon_dir = theme->icon_dirs->data[curr_index];
-
-            // Check if the directory is indexed, if not, try to index it
-            if (curr_icon_dir->index_state == NotIndexed)
-            {
-                IndexSingleIconDir(curr_icon_dir, theme_dir);
-            }
-
-            // If partially indexed, fallback to using "access"
-            if (curr_icon_dir->index_state == PartiallyIndexed)
-            {
-                // If valid, add icon to the hashmap
-                if (!LookupIconBackup(curr_icon_dir, icon_name, theme_dir))
-                    continue;
-            }
-
-            // Now, search for the icon in the indexed hash map
-            const char *icon_path = HashMapGet(curr_icon_dir->icons, icon_name);
-            if (icon_path == NULL)
+            IndexSingleIconDir(curr_icon_dir, theme_dir);
+        }
+        // If partially indexed, fallback to using "access"
+        if (curr_icon_dir->index_state == PartiallyIndexed)
+        {
+            // If valid, add icon to the hashmap
+            if (!LookupIconBackup(curr_icon_dir, icon_name, theme_dir))
                 continue;
-
-            if (DirectoryMatchesSize(curr_icon_dir, size, scale))
-            {
-                return strdup(icon_path); // Exact match
-            }
+        }
+        // Now, search for the icon in the indexed hash map
+        const char *icon_path = HashMapGet(curr_icon_dir->icons, icon_name);
+        if (icon_path == NULL)
+            continue;
+        if (DirectoryMatchesSize(curr_icon_dir, size, scale))
+        {
+            return strdup(icon_path); // Exact match
         }
     }
 
@@ -826,6 +834,21 @@ char *LookupFallbackIcon(const char *icon)
     return NULL;
 }
 
+static int SearchThemeNameCmp1(const void *a, const void *b)
+{
+    const IconTheme *theme = a;
+    const char *theme_name = b;
+
+    return strcmp(theme->name, theme_name) == 0;
+}
+
+static int SearchThemeNameCmp2(const void *a, const void *b)
+{
+    const char *theme_name_a = a;
+    const char *theme_name_b = b;
+
+    return strcmp(theme_name_a, theme_name_b) == 0;
+}
 
 int PreloadIconThemes(const char *theme)
 {
@@ -834,7 +857,7 @@ int PreloadIconThemes(const char *theme)
     if (icon_theme == NULL)
         return -1;
 
-    themes = DArrayCreate(8);
+    themes = DArrayCreate(8, (void*)UnLoadIconTheme,SearchThemeNameCmp1, NULL);
     DArrayAdd(themes, icon_theme);
 
     if (icon_theme->parents->size != 0)
@@ -859,8 +882,8 @@ int PreloadIconThemes2(const char *theme)
     if (icon_theme == NULL)
         return -1;
 
-    themes2 = HashMapCreate2((void*)UnLoadIconTheme, NULL);
-    HashMapInsert2(themes2, icon_theme->name, icon_theme);
+    themes_map = HashMapCreate2((void*)UnLoadIconTheme, NULL);
+    HashMapInsert2(themes_map, icon_theme->name, icon_theme);
 
     if (icon_theme->parents->size != 0)
     {
@@ -870,7 +893,7 @@ int PreloadIconThemes2(const char *theme)
 
             IconTheme *parent_theme = LoadIconTheme(parent);
             if (parent_theme != NULL)
-                HashMapInsert2(themes2, parent, parent_theme);
+                HashMapInsert2(themes_map, parent, parent_theme);
         }
     }
 
@@ -884,13 +907,13 @@ int PreloadIconThemes3(const char *theme)
     if (icon_theme == NULL)
         return -1;
 
-    if (themes2 == NULL)
+    if (themes_map == NULL)
     {
-        themes2 = HashMapCreate2((void*)UnLoadIconTheme, NULL);
-        themes_names = DArrayCreate(8);
+        themes_map = HashMapCreate2((void*)UnLoadIconTheme, NULL);
+        themes_names = DArrayCreate(8, free, SearchThemeNameCmp2, NULL);
     }
 
-    HashMapInsert2(themes2, theme, icon_theme);
+    HashMapInsert2(themes_map, theme, icon_theme);
     DArrayAdd(themes_names, strdup(theme));
 
     if (icon_theme->parents->size != 0)
@@ -898,7 +921,7 @@ int PreloadIconThemes3(const char *theme)
         for (int i = 0; i < icon_theme->parents->size; i++)
         {
             char *parent = icon_theme->parents->data[i];
-            if (HashMapGet2(themes2, parent) != NULL)
+            if (HashMapGet2(themes_map, parent) != NULL)
             {
                 continue;
             }
@@ -922,7 +945,7 @@ int PreloadIconThemesFast(const char *theme)
     if (default_theme == NULL)
         return -1;
 
-    themes = DArrayCreate(4);
+    themes = DArrayCreate(4, (void*)UnLoadIconTheme, SearchThemeNameCmp1, NULL);
     DArrayAdd(themes, icon_theme);
     DArrayAdd(themes, default_theme);
 
@@ -931,19 +954,19 @@ int PreloadIconThemesFast(const char *theme)
 
 void DestroyIconThemes(void)
 {
-    if (themes2 == NULL)
+    if (themes_map == NULL)
         return;
 
-    //DArrayDestroy(themes, (void*)UnLoadIconTheme);
-    HashMapDestroy2(themes2);
-    DArrayDestroy(themes_names, free);
+    //DArrayDestroy(themes);
+    HashMapDestroy2(themes_map);
+    DArrayDestroy(themes_names);
 }
 
 char *SearchIconInThemes(const char *icon, int size, int scale, int max_theme_depth)
 {
-    int themes_to_search = max_theme_depth;
-    if (max_theme_depth == 0)
-        themes_to_search = themes->size;
+    int themes_to_search = themes_names->size;
+    if (max_theme_depth != 0)
+        themes_to_search = MIN(themes_to_search, max_theme_depth);
 
     for (int i = 0; i < themes_to_search; i++)
     {
@@ -961,15 +984,15 @@ char *SearchIconInThemes(const char *icon, int size, int scale, int max_theme_de
 
 char *SearchIconInThemes2(const char *icon, int size, int scale, int max_theme_depth)
 {
-    int themes_to_search = max_theme_depth;
-    if (max_theme_depth == 0)
-        themes_to_search = themes_names->size;
+    int themes_to_search = themes_names->size;
+    if (max_theme_depth != 0)
+        themes_to_search = MIN(themes_to_search, max_theme_depth);
 
     for (int i = 0; i < themes_to_search; i++)
     {
         char *theme_name = themes_names->data[i];
     
-        IconTheme *theme = HashMapGet2(themes2, theme_name);
+        IconTheme *theme = HashMapGet2(themes_map, theme_name);
         if (theme == NULL)
             return NULL;
 
@@ -983,25 +1006,9 @@ char *SearchIconInThemes2(const char *icon, int size, int scale, int max_theme_d
     return NULL;
 }
 
-static int ThemeNameCmp(const void *a, const void *b)
-{
-    const IconTheme *theme = a;
-    const char *theme_name = b;
-
-    return strcmp(theme->name, theme_name) == 0;
-}
-
-static int ThemeNameCmp2(const void *a, const void *b)
-{
-    const char *theme_name_a = a;
-    const char *theme_name_b = b;
-
-    return strcmp(theme_name_a, theme_name_b) == 0;
-}
-
 char *SearchIconInTheme(const char *theme_name, const char *icon, int size, int scale)
 {
-    IconTheme *theme = DArrayLinearSearch(themes, theme_name, ThemeNameCmp);
+    IconTheme *theme = DArrayLinearSearch(themes, theme_name);
     if (theme != NULL)
     {
         return LookupIcon(theme, icon, size, scale);
@@ -1012,7 +1019,12 @@ char *SearchIconInTheme(const char *theme_name, const char *icon, int size, int 
 
 char *SearchIconInTheme2(const char *theme_name, const char *icon, int size, int scale)
 {
-    IconTheme *theme = HashMapGet2(themes2, DArrayLinearSearch(themes_names, theme_name, ThemeNameCmp2));
+    const char *found_theme_name = DArrayLinearSearch(themes_names, theme_name);
+
+    if (!found_theme_name)
+        return NULL;
+
+    IconTheme *theme = HashMapGet2(themes_map, found_theme_name);
     if (theme != NULL)
     {
         return LookupIcon(theme, icon, size, scale);
