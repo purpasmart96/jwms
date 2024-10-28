@@ -104,8 +104,7 @@ int CreateJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
             }
             else
             {
-                //char *resolved_icon = FindIcon(jwm->tray_menu_icon, jwm->global_preferred_icon_size, 1);
-                char *resolved_icon  = SearchIconInThemes2(jwm->tray_menu_icon, jwm->global_preferred_icon_size, 1, 0);
+                char *resolved_icon  = SearchIconInThemes(jwm->tray_menu_icon, jwm->global_preferred_icon_size, 1, 0);
 
                 // Use the new icon if found, otherwise use the provided icon
                 const char *icon_path = (resolved_icon != NULL) ? resolved_icon : jwm->tray_menu_icon;
@@ -121,8 +120,7 @@ int CreateJWMTray(JWM *jwm, BTreeNode *entries, HashMap *icons)
             }
         }
 
-        //char *show_desktop_icon = FindIcon("desktop", jwm->global_preferred_icon_size, 1);
-        char *show_desktop_icon = SearchIconInThemes2("desktop", jwm->global_preferred_icon_size, 1, 0);
+        char *show_desktop_icon = SearchIconInThemes("desktop", jwm->global_preferred_icon_size, 1, 0);
         AddTraySpacing(fp, tray);
 
         if (tray->num_programs > 0)
