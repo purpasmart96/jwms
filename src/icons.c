@@ -552,28 +552,23 @@ static bool LookupIconBackup(XDGIconDir *icon_dir, const char *icon_name, const 
     return false;
 }
 
-static size_t FindSubdirsWithSize(IconTheme *theme, int size, int *found_dirs)
+static char *LookupIconExactSize(IconTheme *theme, const char *icon_name, int size, int scale)
 {
+    // Icon size substr
     char icon_size[4];
     snprintf(icon_size, sizeof(icon_size), "%d", size);
 
     size_t found = 0;
 
+    int index_array[theme->icon_dirs->size];
+
     for (size_t i = 0; i < theme->icon_dirs->size; i++)
     {
         if (IconDirCmpSubStr(theme->icon_dirs->data[i], icon_size))
         {
-            found_dirs[found++] = i;
+            index_array[found++] = i;
         }
     }
-
-    return found;
-}
-
-static char *LookupIconExactSize(IconTheme *theme, const char *icon_name, int size, int scale)
-{
-    int index_array[theme->icon_dirs->size];
-    size_t found = FindSubdirsWithSize(theme, size, index_array);
 
     // No valid subdirs were found
     if (!found)
@@ -586,6 +581,7 @@ static char *LookupIconExactSize(IconTheme *theme, const char *icon_name, int si
     char theme_dir[256];
     snprintf(theme_dir, sizeof(theme_dir), "%s/%s", base_dir, theme->name);
 
+    // Now look for the correct icon in those valid subdirs 
     for (size_t i = 0; i < found; i++)
     {
         int curr_index = index_array[i];
@@ -595,7 +591,7 @@ static char *LookupIconExactSize(IconTheme *theme, const char *icon_name, int si
         {
             IndexSingleIconDir(curr_icon_dir, theme_dir);
         }
-        // If partially indexed, fallback to using "access"
+        // If partially indexed, fallback to using the access syscall
         if (curr_icon_dir->index_state == PartiallyIndexed)
         {
             // If valid, add icon to the hashmap
@@ -628,38 +624,39 @@ static char *LookupIconScaled(IconTheme *theme, const char *icon_name)
         }
     }
 
-    if (found != 0)
+    // No valid subdirs were found
+    if (!found)
     {
-        // Build partial path
-        const char *base_dir = "/usr/share/icons";
-        char theme_dir[256];
-        snprintf(theme_dir, sizeof(theme_dir), "%s/%s", base_dir, theme->name);
+        return NULL;
+    }
 
-        for (size_t i = 0; i < found; i++)
+    // Build partial path
+    const char *base_dir = "/usr/share/icons";
+    char theme_dir[256];
+    snprintf(theme_dir, sizeof(theme_dir), "%s/%s", base_dir, theme->name);
+
+    // Now look for the correct icon in those valid subdirs 
+    for (size_t i = 0; i < found; i++)
+    {
+        int curr_index = index_array[i];
+        XDGIconDir *curr_icon_dir = theme->icon_dirs->data[curr_index];
+        // Check if the directory is indexed, if not, index it
+        if (curr_icon_dir->index_state == NotIndexed)
         {
-            int curr_index = index_array[i];
-            XDGIconDir *curr_icon_dir = theme->icon_dirs->data[curr_index];
-
-            // Check if the directory is indexed, if not, index it
-            if (curr_icon_dir->index_state == NotIndexed)
-            {
-                IndexSingleIconDir(curr_icon_dir, theme_dir);
-            }
-            // If partially indexed, fallback to using "access"
-            if (curr_icon_dir->index_state == PartiallyIndexed)
-            {
-                // If valid, add icon to the hashmap
-                if (!LookupIconBackup(curr_icon_dir, icon_name, theme_dir))
-                    continue;
-            }
-
-            // Now, search for the icon in the indexed hash map
-            const char *icon_path = HashMapGet(curr_icon_dir->icons, icon_name);
-            if (icon_path == NULL)
-                continue;
-
-            return strdup(icon_path); // Exact match
+            IndexSingleIconDir(curr_icon_dir, theme_dir);
         }
+        // If partially indexed, fallback to using the access syscall
+        if (curr_icon_dir->index_state == PartiallyIndexed)
+        {
+            // If valid, add icon to the hashmap
+            if (!LookupIconBackup(curr_icon_dir, icon_name, theme_dir))
+                continue;
+        }
+        // Now, search for the icon in the indexed hash map
+        const char *icon_path = HashMapGet(curr_icon_dir->icons, icon_name);
+        if (icon_path == NULL)
+            continue;
+        return strdup(icon_path); // Exact match
     }
 
     return NULL;
@@ -1046,9 +1043,9 @@ static void SearchAndStoreIcon(void *entry_ptr, void *args_ptr)
     SearchAndStoreIconHelper(args->valid_icons, icon, args->size, args->scale);
 }
 
-HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale)
+HashMap *FindAllIcons(BTreeNode *entries, int size, int scale)
 {
-    char theme[256] = "\0";
+    char theme[256];
     int found = GetCurrentGTKIconThemeName(theme);
     //char *theme = GetCurrentGTKIconThemeName();
     //char *theme = "Papirus";

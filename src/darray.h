@@ -21,13 +21,14 @@ void *DArrayLinearSearch(DArray *darray, const void *target);
 void *DArrayBinarySearch(DArray *darray, const void *target);
 void *DArraySearch(DArray *darray, const void *target);
 void DArraySort(DArray *darray);
-bool DArrayContains(DArray *darray, const void *item);
+bool DArrayContains(DArray *darray, const void *target);
+void DArrayRemoveDupes(DArray *darray);
 void DArrayPrint(DArray *darray, void (*PrintCallback)(void*));
 void **DArrayResize(DArray *darray, size_t capacity);
 void DArrayDestroy(DArray *darray);
 bool DArrayEmpty(DArray *darray);
 bool DArrayFull(DArray *entries);
 int DArrayAdd(DArray *darray, void *element);
-void **DArrayRemove(DArray *darray, size_t index);
+int DArrayRemove(DArray *darray, size_t index);
 
 #endif

@@ -5,6 +5,8 @@ REL_FLAGS := -O2 -D DISABLE_DEBUG
 DBG_FLAGS := -ggdb -O0
 
 BIN := jwms
+VERSION ?= 0.1
+TARBALL_NAME := jwms-$(VERSION).tar.gz
 SYS_CONF := /etc/jwms
 DEST_DIR := /usr/local/bin
 
@@ -47,11 +49,16 @@ $(DBG_DIR)/%.o: src/%.c
 	$(CC) $(DBG_FLAGS) $(CFLAGS) -c -o $@ $<
 
 run:
-	./jwms --all
+	./jwms -a
 
 clean:
 	@rm -rf $(BUILD_DIR)
 	@if [ -f "$(BIN)" ]; then rm $(BIN); fi
+	@if [ -f "$(TARBALL_NAME)" ]; then rm $(TARBALL_NAME); fi
+
+tarball: release
+	@echo "Creating tarball $(TARBALL_NAME)..."
+	tar -czf $(TARBALL_NAME) $(BIN) jwms.conf install.sh
 
 install: release
 	install -d $(DEST_DIR)

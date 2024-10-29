@@ -12,6 +12,7 @@
 
 #include "common.h"
 #include "bstree.h"
+#include "darray.h"
 #include "list.h"
 
 #include "desktop_entries.h"
@@ -98,6 +99,15 @@ static XDGAdditionalCategories GetXDGAdditionalCategoryType(const char *category
     return IgnoredOrInvalid;
 }
 
+/*
+static int CategoryCmp(const void *a, const void *b)
+{
+    const char *name1 = a;
+    const char *name2 = b;
+    return strcmp(name1, name2) == 0;
+}
+*/
+
 static XDGDesktopEntry *CreateEmptyEntry(void)
 {
     XDGDesktopEntry *entry = malloc(sizeof(*entry));
@@ -106,6 +116,7 @@ static XDGDesktopEntry *CreateEmptyEntry(void)
         return NULL;
 
     entry->categories = ListCreate();
+    //entry->categories = DArrayCreate(8, free, CategoryCmp, NULL);
     //entry->category = Invalid;
     entry->extra_category = IgnoredOrInvalid;
     //entry->category_name = NULL;
@@ -128,6 +139,7 @@ static void DestroyEntry(void *entry)
     free(uentry->try_exec);
     free(uentry->icon);
     ListDestroy(uentry->categories);
+    //DArrayDestroy(uentry->categories);
     free(entry);
 }
 
@@ -142,6 +154,7 @@ static void EntryPrint(void *ptr, void *args)
     printf("Program             : %s\n", entry->name);
     printf("Categories          : ");
     ListPrint(entry->categories, CategoryPrint);
+    //DArrayPrint(entry->categories, CategoryPrint);
     printf("\n");
     printf("Extra Category      : %s\n", entry->extra_category_name);
     printf("CMD                 : %s\n", entry->exec);
@@ -371,6 +384,7 @@ static void ParseCategories(XDGDesktopEntry *entry, char *categories, XDGMainCat
         {
             *main_category = main; 
             ListAdd(entry->categories, token, strlen(token) + 1);
+            //DArrayAdd(entry->categories, strdup(token));
             /*
             if (entry->category_name == NULL)
             {

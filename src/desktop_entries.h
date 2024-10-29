@@ -71,6 +71,7 @@ typedef struct
 typedef struct
 {
     List *categories;
+    //DArray *categories;
     //XDGMainCategories category;
     XDGAdditionalCategories extra_category;
     //char *category_name;

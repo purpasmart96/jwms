@@ -100,7 +100,7 @@ static int LoadIcons(JWM *jwm, BTreeNode *entries, HashMap **icons)
 {
     printf("Loading icons...\n");
     
-    *icons = FindAllIcons2(entries, jwm->global_preferred_icon_size, 1);
+    *icons = FindAllIcons(entries, jwm->global_preferred_icon_size, 1);
     if (*icons == NULL)
     {
         printf("Failed to load icons!\n");

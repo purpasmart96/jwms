@@ -85,13 +85,12 @@ typedef struct
 
 XDGIconDir *IconCreate(const char *path, IconType type, IconContext context, int size, int min_size, int max_size, int scale, int threshold);
 
-int GetCurrentGTKIconThemeName(char theme_name[]);
+int GetCurrentGTKIconThemeName(char *theme_name);
 //char *LookupIcon(char *icon_name, int size, int scale, char *theme);
 char *LookupIcon2(IconTheme *theme, const char *icon_name, int size, int scale);
 char *LookupIcon(IconTheme *theme, const char *icon_name, int size, int scale);
 char *FindIcon(const char *icon, int size, int scale);
-HashMap *FindAllIcons(List *icons, int size, int scale);
-HashMap *FindAllIcons2(BTreeNode *entries, int size, int scale);
+HashMap *FindAllIcons(BTreeNode *entries, int size, int scale);
 
 int PreloadIconThemes(const char *theme);
 int PreloadIconThemesFast(const char *theme);

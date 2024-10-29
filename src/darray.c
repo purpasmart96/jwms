@@ -140,14 +140,9 @@ void DArraySort(DArray *darray)
     darray->dirty = false;
 }
 
-bool DArrayContains(DArray *darray, const void *item)
+bool DArrayContains(DArray *darray, const void *target)
 {
-    if (darray->dirty)
-    {
-        DArraySort(darray);
-    }
-
-    return DArrayBinarySearch(darray, item) != NULL ? true : false;
+    return DArraySearch(darray, target) != NULL ? true : false;
 }
 
 // O(n^2)
@@ -166,32 +161,50 @@ void DArrayFindDupes(DArray *darray, const void *item)
     }
 }
 
-// O(n)
+// O(n log n) + O(n)
 void DArrayRemoveDupes(DArray *darray)
 {
     DArraySort(darray);
-    for (size_t i = 0; i < darray->size - 1; i++)
-    {
-        if (darray->data[i] == darray->data[i + 1])
-        {
 
+    size_t j = 0;
+    for (size_t i = 1; i < darray->size; i++)
+    {
+        if (darray->data[i] == darray->data[j])
+        {
+            j++;
+            darray->data[j] = darray->data[i];
+        }
+        else
+        {
+            darray->DestroyCallback(darray->data[i]);
         }
     }
+
+    darray->size = j + 1;
 }
 
-// Not Tested
-void **DArrayRemove(DArray *darray, size_t index)
+int DArrayRemove(DArray *darray, size_t index)
 {
-    size_t data_size = sizeof(void*);
-    // Allocate an array with a size 1 less than the current one
-    void **temp = malloc((darray->size - 1) * data_size);
+    if (index >= darray->size)
+    {
+        return -1;  // Invalid index
+    }
 
-    if (index != 0) // copy everything BEFORE the index
-        memcpy(temp, darray->data, (index - 1) * data_size);
+    // Call the destroy callback on the element to be removed
+    darray->DestroyCallback(darray->data[index]);
 
-    if (index != (darray->size - 1)) // copy everything AFTER the index
-        memcpy(temp + index, darray->data + index + 1, (darray->size - index - 1) * data_size);
+    // Shift elements down if the removed element is not the last one
+    if (index < darray->size - 1)
+    {
+        memmove(&darray->data[index], &darray->data[index + 1], 
+                (darray->size - index - 1) * sizeof(void*));
+    }
 
-    free(darray->data);
-    return temp;
+    // Decrease size
+    darray->size--;
+
+    // Mark as dirty to indicate sorting is needed
+    darray->dirty = true;
+
+    return 0;
 }

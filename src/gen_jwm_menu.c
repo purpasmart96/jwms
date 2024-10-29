@@ -33,13 +33,14 @@ static const char *category_icons[] =
     "applications-utilities",
 };
 
-
+/*
 static int CategoryCmp(const void *a, const void *b)
 {
     const char *name1 = a;
     const char *name2 = b;
     return strcmp(name1, name2) == 0;
 }
+*/
 
 typedef struct
 {
@@ -55,12 +56,20 @@ typedef struct
     MenuCategory *category;
 } CategoryArgs;
 
+static int CategoryCmp(const void *a, const void *b)
+{
+    const char *name1 = a;
+    const char *name2 = b;
+    return strcmp(name1, name2) == 0;
+}
+
 static void WriteMenuCategory(void *entry_ptr, void *args_ptr)
 {
     XDGDesktopEntry *entry = entry_ptr;
     CategoryArgs *args = args_ptr;
     FILE *fp = args->fp;
 
+    //if (DArrayContains(entry->categories, args->category->real_name))
     if (ListContains(entry->categories, args->category->real_name, CategoryCmp))
     {
         const char *icon = HashMapGet(args->icons, entry->icon);
@@ -113,6 +122,7 @@ static void CountCategories(void *ptr, void *args_ptr)
     
     for (int i = 0; i < 11; ++i)
     {
+        //if (DArrayContains(entry->categories, args[i].category.real_name))
         if (ListContains(entry->categories, args[i].category.real_name, CategoryCmp))
         {
             args[i].found = true;
