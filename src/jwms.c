@@ -1,307 +1,137 @@
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
+#include <sys/syslog.h>
+#include <sys/wait.h>
 #include <unistd.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <getopt.h>
+#include <limits.h>
+#include <errno.h>
+#include <fcntl.h>
 
-#include <bsd/string.h>
-#include <confuse.h>
+#include <X11/Xlib.h>
 
-#include "common.h"
-#include "darray.h"
-#include "list.h"
-#include "hashing.h"
-#include "bstree.h"
-#include "icons.h"
-#include "desktop_entries.h"
-#include "list.h"
-#include "config.h"
-
-
-#define VERSION "v0.1"
-
-static void About(void)
+static void SignalHandler(int signal)
 {
-    printf("jwm-helper " VERSION " by Matt W\n");
-}
-
-static void Usage(void)
-{
-    About();
-    printf("Usage: jwms [option...]\n\n");
-}
-
-static void Help(void)
-{
-    printf("Options:\n"
-            "  -h, --help         Display this information\n"
-            "  -v, --version      Display version information\n"
-            "  -a, --all          Generate all JWM files\n"
-            "  -A, --autostart    Generate the JWM autostart script\n"
-            "  -b, --binds        Generate the JWM keybinds\n"
-            "  -g, --groups       Generate the JWM program groups\n"
-            "  -i, --icons        Generate the JWM icon paths\n"
-            "  -j, --jwmrc        Generate the JWM rc file\n"
-            "  -m, --menu         Generate the JWM rootmenu\n"
-            "  -p, --prefs        Generate the JWM preference\n"
-            "  -s, --styles       Generate the JWM styles\n"
-            "  -t, --tray         Generate the JWM tray\n");
-}
-
-static const struct option long_opts[] =
-{
-    {"help",      no_argument, 0, 'h'},
-    {"version",   no_argument, 0, 'v'},
-    {"all",       no_argument, 0, 'a'},
-    {"autostart", no_argument, 0, 'A'}, 
-    {"binds",     no_argument, 0, 'b'},
-    {"groups",    no_argument, 0, 'g'},
-    {"icons",     no_argument, 0, 'i'},
-    {"jwmrc",     no_argument, 0, 'j'},
-    {"menu",      no_argument, 0, 'm'},
-    {"prefs",     no_argument, 0, 'p'},
-    {"styles",    no_argument, 0, 's'},
-    {"tray",      no_argument, 0, 't'},
-    {0, 0, 0, 0}  // terminator
-};
-
-static int LoadAllDesktopEntries(BTreeNode **entries)
-{
-    // These paths should not be hardcoded, but they work for now
-    const char *default_app_dir = "/usr/share/applications/";
-    const char *user_app_dir = "~/.local/share/applications/";
-
-    int success = LoadDesktopEntries(entries, default_app_dir);
-
-    if (success != 0)
+    switch (signal)
     {
-        printf("Failed to load desktop entries from the default path %s!\n", default_app_dir);
-        return -1;
-    }
-
-    char user_app_dir_buffer[512];
-    ExpandPath(user_app_dir_buffer, user_app_dir, sizeof(user_app_dir_buffer));
-    success = LoadDesktopEntries(entries, user_app_dir_buffer);
-
-    if (success != 0)
-    {
-        printf("Failed to load desktop entries from the user %s! Skipping...\n", user_app_dir_buffer);
-    }
-
-    return 0;
-}
-
-static int LoadIcons(JWM *jwm, BTreeNode *entries, HashMap **icons)
-{
-    printf("Loading icons...\n");
-    
-    *icons = FindAllIcons(entries, jwm->global_preferred_icon_size, 1);
-    if (*icons == NULL)
-    {
-        printf("Failed to load icons!\n");
-        return -1;
-    }
-
-    printf("Finished loading icons\n");
-    return 0;
-    //HashMapPrint(icons_output);
-}
-
-static int GenerateAll(JWM *jwm, cfg_t *cfg, BTreeNode *entries, HashMap *icons)
-{
-    if (CreateJWMStartup(jwm) != 0)
-        return -1;
-
-    if (CreateJWMGroup(jwm) != 0)
-        return -1;
-
-    if (CreateJWMTray(jwm, entries, icons) != 0)
-        return -1;
-
-    if (CreateJWMRootMenu(jwm, entries, icons, NULL) != 0)
-        return -1;
-
-    if (CreateJWMStyles(jwm) != 0)
-        return -1;
-
-    if (CreateJWMPreferences(jwm) != 0)
-        return -1;
-
-    if (CreateJWMIcons(jwm) != 0)
-        return -1;
-
-    if (CreateJWMBinds(jwm, cfg) != 0)
-        return -1;
-
-    if (CreateJWMAutoStart(jwm, cfg) != 0)
-        return -1;
-
-    if (CreateJWMRCFile(jwm) != 0)
-        return -1;
-
-    return 0;
-}
-
-static int InitializeConfig(JWM **jwm, cfg_t **cfg)
-{
-    if (*cfg != NULL && *jwm != NULL)
-    {
-        return 0;
-    }
-
-    if (LoadJWMConfig(jwm, cfg) != 0)
-    {
-        printf("Failed to properly load the jwms.conf file! Aborting!\n");
-        return -1;
-    }
-
-    if (CreateJWMFolder(*jwm) != 0)
-    {
-        return -1;
-    }
-
-    return 0;
-}
-
-static void CleanUp(JWM *jwm, cfg_t *cfg, HashMap *icons, BTreeNode *entries)
-{
-    if (icons)
-    {
-        DestroyIconThemes();
-        HashMapDestroy(icons);
-    }
-    if (entries)
-        EntriesDestroy(entries);
-    if (jwm)
-    {
-        free(jwm->autogen_config_path);
-        free(jwm);
-    }
-    if (cfg)
-        cfg_free(cfg);
-}
-
-int HandleCmd(int opt, JWM *jwm, cfg_t *cfg, BTreeNode **entries, HashMap **icons)
-{
-    switch (opt)
-    {
-        case 'a': // --all
-        {
-            if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
-            {
-                return EXIT_FAILURE;
-            }
-            if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
-            {
-                return EXIT_FAILURE;
-            }
-            return GenerateAll(jwm, cfg, *entries, *icons);
-        }
-        case 'A': // --autostart
-            return CreateJWMAutoStart(jwm, cfg);
-
-        case 'b': // --binds
-            return CreateJWMBinds(jwm, cfg);
-
-        case 'g': // --groups
-            return CreateJWMGroup(jwm);
-
-        case 'i': // --icons
-            return CreateJWMIcons(jwm);
-
-        case 'j': // --jwmrc
-            return CreateJWMRCFile(jwm);
-
-        case 'm': // --menu
-            if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
-            {
-                return EXIT_FAILURE;
-            }
-            if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
-            {
-                return EXIT_FAILURE;
-            }
-            return CreateJWMRootMenu(jwm, *entries, *icons, NULL);
-
-        case 'p': // --prefs
-            return CreateJWMPreferences(jwm);
-
-        case 's': // --styles
-            return CreateJWMStyles(jwm);
-
-        case 't': // --tray
-            if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
-            {
-                return EXIT_FAILURE;
-            }
-            if (*icons == NULL && LoadIcons(jwm, *entries, icons) != 0)
-            {
-                return EXIT_FAILURE;
-            }
-            return CreateJWMTray(jwm, *entries, *icons);
-
+        case SIGINT:
+        case SIGTERM:
+            syslog(LOG_NOTICE, "JWMS: Received termination signal. Stopping session...");
+            exit(0);
+            break;
         default:
-            return EXIT_FAILURE;
+            break;
     }
+}
+
+static int CheckForOtherWM(void)
+{
+    // Open a connection to the X server
+    Display *display = XOpenDisplay(NULL);
+    if (display == NULL)
+    {
+        syslog(LOG_ERR, "JWMS: Failed to open X display.");
+        return -1;
+    }
+
+    // Get the atom for the selection "WM_S0" (window manager selection for screen 0)
+    Atom wm_sel = XInternAtom(display, "WM_S0", False);
+
+    // Get the owner of the WM_S0 selection
+    Window owner = XGetSelectionOwner(display, wm_sel);
+    if (owner != None)
+    {
+        printf("JWMS: A another Window manager is already running. Exiting...\n");
+        syslog(LOG_ERR, "Another window manager is already running! Exiting...");
+        XCloseDisplay(display);
+        return -1;
+    }
+
+    // Close the display connection
+    XCloseDisplay(display);
+
+    return 0;
 }
 
 int main(int argc, char *argv[])
 {
-    JWM *jwm = NULL;
-    cfg_t *cfg = NULL;
-    BTreeNode *entries = NULL;
-    HashMap *icons = NULL;
+    signal(SIGINT, SignalHandler);
+    signal(SIGTERM, SignalHandler);
 
-    if (argc < 2)
+    syslog(LOG_INFO, "JWMS: Starting JWMS");
+
+    if (CheckForOtherWM() != 0)
     {
-        Usage();
-        Help();
-        return EXIT_SUCCESS;
+        return EXIT_FAILURE;
     }
 
-    // Handle help and version options explicitly first
-    int opt;
-    int index = 0;
-    while ((opt = getopt_long(argc, argv, "hvaAbgijmpst", long_opts,
-            &index)) != -1)
+    char *jwm_helper_args[] = { "jwm-helper", "-a", NULL };
+
+    pid_t jwm_helper_pid = fork();
+    if (jwm_helper_pid < 0)
     {
-        switch (opt)
+        syslog(LOG_ERR, "JWMS: Failed to create child process for jwm-helper: %s", strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    if (jwm_helper_pid == 0)
+    {
+        //const char *username = getenv("USER");
+        //const char *home = getenv("HOME");
+        //syslog(LOG_INFO, "JWMS: Logged as user: %s", username);
+        //syslog(LOG_INFO, "JWMS: Home dir at: %s", home);
+
+        syslog(LOG_INFO, "JWMS: Running jwm-helper...");
+        // Child process: Execute jwm-helper
+        if (execvp("jwm-helper", jwm_helper_args) < 0)
         {
-            case 'h': // --help
-                Help();
-                return EXIT_SUCCESS;
-
-            case 'v': // --version
-                About();
-                return EXIT_SUCCESS;
-            case '?':
-                Usage();
-                Help();
-                return EXIT_FAILURE;
-
-            default:
-                if (InitializeConfig(&jwm, &cfg) != 0)
-                {
-                    CleanUp(jwm, cfg, icons, entries);
-                    return EXIT_FAILURE;
-                }
-    
-                if (HandleCmd(opt, jwm, cfg, &entries, &icons) != 0)
-                {
-                    CleanUp(jwm, cfg, icons, entries);
-                    return EXIT_FAILURE;
-                }
+            syslog(LOG_ERR, "JWMS: jwm-helper failed to run: %s", strerror(errno));
+            return EXIT_FAILURE;
         }
-
-        if (opt == 'a')
-            break;
     }
 
-    CleanUp(jwm, cfg, icons, entries);
+    // Wait for jwm-helper to finish
+    int jwm_helper_status;
+    if (waitpid(jwm_helper_pid, &jwm_helper_status, 0) < 0)
+    {
+        syslog(LOG_ERR, "JWMS: Error waiting for jwm-helper: %s", strerror(errno));
+    }
+    else if (WIFEXITED(jwm_helper_status))
+    {
+        syslog(LOG_INFO, "JWMS: jwm-helper exited with status %d", WEXITSTATUS(jwm_helper_status));
+    }
+
+    // jwm-helper is done, let's now start JWM
+    pid_t jwm_pid = fork();
+    if (jwm_pid < 0)
+    {
+        syslog(LOG_ERR, "JWMS: Failed to create child process for jwm: %s", strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    if (jwm_pid == 0)
+    {
+        syslog(LOG_INFO, "JWMS: Starting jwm");
+        // Child process: Execute JWM
+        if (execlp("jwm", "jwm", NULL) < 0)
+        {
+            syslog(LOG_ERR, "JWMS: jwm failed to run: %s", strerror(errno));
+            return EXIT_FAILURE;
+        }
+    }
+
+    // Wait for JWM to finish
+    int jwm_status;
+    syslog(LOG_INFO, "JWMS: Session manager running...");
+
+    if (waitpid(jwm_pid, &jwm_status, 0) < 0)
+    {
+        syslog(LOG_ERR, "JWMS: Error waiting for jwm: %s", strerror(errno));
+    }
+    else if (WIFSIGNALED(jwm_status))
+    {
+        syslog(LOG_INFO, "JWMS:jwm was terminated by signal %d", WTERMSIG(jwm_status));
+    }
+
     return EXIT_SUCCESS;
 }

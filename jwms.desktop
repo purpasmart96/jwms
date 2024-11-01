@@ -1,0 +1,20 @@
+[Desktop Entry]
+Encoding=UTF-8
+Type=Application
+Name=JWMS
+GenericName=Window Manager
+Comment=This session logs you into JWM
+Exec=jwms
+TryExec=jwms
+NoDisplay=false
+Hidden=false
+StartupNotify=false
+X-GNOME-Autostart-Notify=false
+X-GNOME-Autostart-Phase=WindowManager
+X-GNOME-Provides=windowmanager
+X-GNOME-WMName=jwm
+
+[Window Manager]
+Name=jwm
+SessionManaged=true
+StartupNotification=false
