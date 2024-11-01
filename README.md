@@ -44,9 +44,10 @@ The jwms program is not meant to be run by the user, that is handled by the Disp
 
 ### Installing
 
-Run the followinf commands to do a system install.
+Run the following commands to do a system install.
 
 `make`
+
 `sudo make install` 
 
 You should now have both binaries installed in `/usr/local/bin` and the default config that is provided in `/etc/jwms` along with the xsession desktop file in `/usr/share/xsessions`
