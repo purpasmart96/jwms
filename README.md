@@ -16,7 +16,7 @@ When ran, based on how you configured the jwms.conf file. jwm-helper will genera
 
 The jwms program is a very simple daemon that runs in the background when it gets called from the Display Manager.
 
-Its job is to run jwm-helper and start jwm.
+Its job is to run jwm-helper and start jwm. That's it (for now).
 
 ### Configuring jwms.conf
 
@@ -30,7 +30,9 @@ A guide is going to be provided eventually.
 
 Requires libconfuse, libbsd and libx11
 
-Run `make` in the project root directory to create the binaries
+Run `make` in the project root directory to create the binaries.
+
+Before running, make sure there is a valid `.gtkrc-2.0` file in your home directory. The jwm-helper needs this to get the current icon theme. (I know, it kinda sucks)
 
 You should now be able run the jwm-helper program via `./jwm-helper --all` which creates all files needed for JWM
 
