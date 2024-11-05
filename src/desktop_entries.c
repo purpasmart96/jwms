@@ -29,21 +29,21 @@ static const Pair xdg_keys[] =
     {"Hidden",               Hidden               },
     {"OnlyShowIn",           OnlyShowIn           },
     {"NotShowIn",            NotShowIn            },
-    {"DBusActivatable",      DBusActivatable     },
-    {"TryExec",              TryExec             },
-    {"Exec",                 Exec                },
-    {"Path",                 Path                },
-    {"Terminal",             Terminal            },
-    {"Actions",              Actions             },
-    {"MimeType",             MimeType            },
-    {"Categories",           Categories          },
-    {"Implements",           Implements          },
-    {"Keywords",             Keywords            },
-    {"StartupNotify",        StartupNotify       },
-    {"StartupWMClass",       StartupWMClass      },
-    {"URL",                  URL                 },
-    {"PrefersNonDefaultGPU", PrefersNonDefaultGPU},
-    {"SingleMainWindow",     SingleMainWindow    }
+    {"DBusActivatable",      DBusActivatable      },
+    {"TryExec",              TryExec              },
+    {"Exec",                 Exec                 },
+    {"Path",                 Path                 },
+    {"Terminal",             Terminal             },
+    {"Actions",              Actions              },
+    {"MimeType",             MimeType             },
+    {"Categories",           Categories           },
+    {"Implements",           Implements           },
+    {"Keywords",             Keywords             },
+    {"StartupNotify",        StartupNotify        },
+    {"StartupWMClass",       StartupWMClass       },
+    {"URL",                  URL                  },
+    {"PrefersNonDefaultGPU", PrefersNonDefaultGPU },
+    {"SingleMainWindow",     SingleMainWindow     }
 };
 
 static const Pair xdg_main_categories[] =
@@ -58,19 +58,19 @@ static const Pair xdg_main_categories[] =
     {"Network",     Network    },
     {"Office",      Office     },
     {"Science",     Science    },
-    {"Settings",    Settings  },
-    {"System",      System    },
-    {"Utility",     Utility   }
+    {"Settings",    Settings   },
+    {"System",      System     },
+    {"Utility",     Utility    }
 };
 
 static int xdg_main_category_tracker[13];
 
 static const Pair xdg_extra_categories[] =
 {
-    {"WebBrowser",       WebBrowser      },
-    {"FileManager",      FileManager     },
-    {"TerminalEmulator", TerminalEmulator},
-    {"TextEditor",       TextEditor      },
+    {"WebBrowser",       WebBrowser       },
+    {"FileManager",      FileManager      },
+    {"TerminalEmulator", TerminalEmulator },
+    {"TextEditor",       TextEditor       },
 };
 
 static XDGMainCategories GetXDGMainCategoryType(const char *category)
@@ -418,7 +418,7 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         }
 
         case Version:
-        break;
+            break;
 
         case Name:
         {
@@ -432,7 +432,7 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         }
 
         case GenericName:
-        break;
+            break;
 
         case NoDisplay:
         {
@@ -441,7 +441,7 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
             break;
         }
         case Comment:
-        break;
+            break;
         case Icon:
         {
             DEBUG_LOG("Found Icon: %s\n", value);
@@ -493,14 +493,14 @@ static void ParseDesktopEntry(XDGDesktopEntry *entry, int key_type, char *key, c
         }
         case Keywords:
             DEBUG_LOG("Found Keywords: %s\n", value);
-        break;
+            break;
         case URL:
             DEBUG_LOG("Found URL: %s\n", value);
-        break;
+            break;
 
         default:
             DEBUG_LOG("Invalid or ingored key: \"%s\" contains \"%s\"\n", key, value);
-        break;
+            break;
     }
 }
 

@@ -39,18 +39,18 @@ static void Usage(void)
 static void Help(void)
 {
     printf("Options:\n"
-            "  -h, --help         Display this information\n"
-            "  -v, --version      Display version information\n"
-            "  -a, --all          Generate all JWM files\n"
-            "  -A, --autostart    Generate the JWM autostart script\n"
-            "  -b, --binds        Generate the JWM keybinds\n"
-            "  -g, --groups       Generate the JWM program groups\n"
-            "  -i, --icons        Generate the JWM icon paths\n"
-            "  -j, --jwmrc        Generate the JWM rc file\n"
-            "  -m, --menu         Generate the JWM rootmenu\n"
-            "  -p, --prefs        Generate the JWM preference\n"
-            "  -s, --styles       Generate the JWM styles\n"
-            "  -t, --tray         Generate the JWM tray\n");
+           "  -h, --help         Display this information\n"
+           "  -v, --version      Display version information\n"
+           "  -a, --all          Generate all JWM files\n"
+           "  -A, --autostart    Generate the JWM autostart script\n"
+           "  -b, --binds        Generate the JWM keybinds\n"
+           "  -g, --groups       Generate the JWM program groups\n"
+           "  -i, --icons        Generate the JWM icon paths\n"
+           "  -j, --jwmrc        Generate the JWM rc file\n"
+           "  -m, --menu         Generate the JWM rootmenu\n"
+           "  -p, --prefs        Generate the JWM preference\n"
+           "  -s, --styles       Generate the JWM styles\n"
+           "  -t, --tray         Generate the JWM tray\n");
 }
 
 static const struct option long_opts[] =
@@ -58,7 +58,7 @@ static const struct option long_opts[] =
     {"help",      no_argument, 0, 'h'},
     {"version",   no_argument, 0, 'v'},
     {"all",       no_argument, 0, 'a'},
-    {"autostart", no_argument, 0, 'A'}, 
+    {"autostart", no_argument, 0, 'A'},
     {"binds",     no_argument, 0, 'b'},
     {"groups",    no_argument, 0, 'g'},
     {"icons",     no_argument, 0, 'i'},
@@ -99,7 +99,7 @@ static int LoadAllDesktopEntries(BTreeNode **entries)
 static int LoadIcons(JWM *jwm, BTreeNode *entries, HashMap **icons)
 {
     printf("Loading icons...\n");
-    
+
     *icons = FindAllIcons(entries, jwm->global_preferred_icon_size, 1);
     if (*icons == NULL)
     {
@@ -108,7 +108,7 @@ static int LoadIcons(JWM *jwm, BTreeNode *entries, HashMap **icons)
     }
 
     printf("Finished loading icons\n");
-    HashMapPrint(*icons);
+    //HashMapPrint(*icons);
     return 0;
 }
 
@@ -218,6 +218,7 @@ int HandleCmd(int opt, JWM *jwm, cfg_t *cfg, BTreeNode **entries, HashMap **icon
             return CreateJWMRCFile(jwm);
 
         case 'm': // --menu
+        {
             if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
             {
                 return EXIT_FAILURE;
@@ -227,6 +228,7 @@ int HandleCmd(int opt, JWM *jwm, cfg_t *cfg, BTreeNode **entries, HashMap **icon
                 return EXIT_FAILURE;
             }
             return CreateJWMRootMenu(jwm, *entries, *icons, NULL);
+        }
 
         case 'p': // --prefs
             return CreateJWMPreferences(jwm);
@@ -235,6 +237,7 @@ int HandleCmd(int opt, JWM *jwm, cfg_t *cfg, BTreeNode **entries, HashMap **icon
             return CreateJWMStyles(jwm);
 
         case 't': // --tray
+        {
             if (*entries == NULL && LoadAllDesktopEntries(entries) != 0)
             {
                 return EXIT_FAILURE;
@@ -244,7 +247,7 @@ int HandleCmd(int opt, JWM *jwm, cfg_t *cfg, BTreeNode **entries, HashMap **icon
                 return EXIT_FAILURE;
             }
             return CreateJWMTray(jwm, *entries, *icons);
-
+        }
         default:
             return EXIT_FAILURE;
     }
@@ -268,7 +271,7 @@ int main(int argc, char *argv[])
     int opt;
     int index = 0;
     while ((opt = getopt_long(argc, argv, "hvaAbgijmpst", long_opts,
-            &index)) != -1)
+                              &index)) != -1)
     {
         switch (opt)
         {
@@ -289,7 +292,7 @@ int main(int argc, char *argv[])
                 {
                     goto failure;
                 }
-    
+
                 if (HandleCmd(opt, jwm, cfg, &entries, &icons) != 0)
                 {
                     goto failure;
