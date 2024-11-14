@@ -213,9 +213,14 @@ int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons, const char *
     WRITE_CFG("        <Restart label=\"Refresh\" icon=\"%s\"/>\n", refresh_icon);
     WRITE_CFG("        <Exit label=\"Logout\" icon=\"%s\"/>\n", logout_icon);
 
-    // Let's assume were using systemd for now
-    //WRITE_CFG("        <Program icon=\"system-reboot\" label=\"Restart\">systemctl reboot</Program>\n");
-    //WRITE_CFG("        <Program icon=\"system-shutdown\" label=\"Shutdown\">systemctl poweroff</Program>\n");
+    if (jwm->global_enable_shutdown_reboot)
+    {
+        const char *restart_icon = HashMapGet(icons, "system-reboot"); 
+        const char *shutdown_icon = HashMapGet(icons, "system-shutdown");
+        WRITE_CFG("        <Program icon=\"%s\" label=\"Restart\">%s</Program>\n", restart_icon, jwm->global_reboot_cmd);
+        WRITE_CFG("        <Program icon=\"%s\" label=\"Shutdown\">%s</Program>\n", shutdown_icon, jwm->global_shutdown_cmd);
+    }
+
     WRITE_CFG("    </RootMenu>\n");
     WRITE_CFG("</JWM>");
 

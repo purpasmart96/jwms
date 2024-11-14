@@ -200,6 +200,9 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
         CFG_STR("global_font", "Sans", CFGF_NONE),
         CFG_STR("global_font_alignment", "center", CFGF_NONE),
         CFG_INT("global_font_size", 10, CFGF_NONE),
+        CFG_BOOL("global_enable_shutdown_reboot", false, CFGF_NONE),
+        CFG_STR("global_shutdown_cmd", "poweroff", CFGF_NONE),
+        CFG_STR("global_reboot_cmd", "reboot", CFGF_NONE),
 
         CFG_BOOL("window_use_global_decorations_style", true, CFGF_NONE),
         CFG_BOOL("window_use_global_colors", true, CFGF_NONE),
@@ -330,6 +333,9 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
     (*jwm)->global_font = cfg_getstr(*cfg, "global_font");
     (*jwm)->global_font_alignment = cfg_getstr(*cfg, "global_font_alignment");
     (*jwm)->global_font_size = cfg_getint(*cfg, "global_font_size");
+    (*jwm)->global_enable_shutdown_reboot = cfg_getbool(*cfg, "global_enable_shutdown_reboot");
+    (*jwm)->global_shutdown_cmd = cfg_getstr(*cfg, "global_shutdown_cmd");
+    (*jwm)->global_reboot_cmd = cfg_getstr(*cfg, "global_reboot_cmd");
 
     (*jwm)->terminal_name = cfg_getstr(*cfg, "global_terminal");
     (*jwm)->filemanager_name = cfg_getstr(*cfg, "global_filemanager");

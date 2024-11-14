@@ -82,6 +82,10 @@ typedef struct
     char *global_font_alignment;
     int global_font_size;
 
+    bool global_enable_shutdown_reboot;
+    char *global_shutdown_cmd;
+    char *global_reboot_cmd;
+
     bool tray_use_global_decorations_style;
     bool tray_use_global_colors;
     bool tray_use_global_font;

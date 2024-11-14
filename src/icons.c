@@ -1100,6 +1100,8 @@ HashMap *FindAllIcons(BTreeNode *entries, int size, int scale)
     SearchAndStoreIconHelper(valid_icons, "system-search", size, scale);
     SearchAndStoreIconHelper(valid_icons, "view-refresh", size, scale);
     SearchAndStoreIconHelper(valid_icons, "system-log-out", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "system-shutdown", size, scale);
+    SearchAndStoreIconHelper(valid_icons, "system-reboot", size, scale);
 
     return valid_icons;
 }
