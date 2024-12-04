@@ -86,6 +86,8 @@ typedef struct
     char *global_shutdown_cmd;
     char *global_reboot_cmd;
 
+    bool global_enable_rofi;
+
     bool tray_use_global_decorations_style;
     bool tray_use_global_colors;
     bool tray_use_global_font;

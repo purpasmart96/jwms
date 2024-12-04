@@ -56,7 +56,7 @@ static void ParseTrays(JWM *jwm, cfg_t *cfg)
 		cfg_t *tray = cfg_getnsec(cfg, "tray", i);
 
         const char *title = cfg_title(tray);
-        printf("tray %u: %s\n", i + 1, title);
+        DEBUG_LOG("tray %u: %s\n", i + 1, title);
 
         const char *tpos = cfg_getstr(tray, "position");
         curr_tray->position = GetTrayPosition(tpos);
@@ -77,7 +77,7 @@ static void ParseTrays(JWM *jwm, cfg_t *cfg)
         for (int j = 0; j < curr_tray->num_programs; j++)
         {
             curr_tray->programs[j] = cfg_getnstr(tray,"programs", j);
-            printf("program %d: %s\n", j, curr_tray->programs[j]);
+            DEBUG_LOG("program %d: %s\n", j, curr_tray->programs[j]);
         }
 	}
 }
@@ -187,9 +187,7 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
 
     cfg_opt_t opts[] =
     {
-        CFG_STR("global_browser", "firefox", CFGF_NONE),
         CFG_STR("global_terminal", "xterm", CFGF_NONE),
-        CFG_STR("global_filemanager", "pcmanfm", CFGF_NONE),
         CFG_STR("global_decorations_style", "flat", CFGF_NONE),
         CFG_STR("global_bg_color_active", "#222222", CFGF_NONE),
         CFG_STR("global_bg_color_inactive", "#111111", CFGF_NONE),
@@ -203,6 +201,7 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
         CFG_BOOL("global_enable_shutdown_reboot", false, CFGF_NONE),
         CFG_STR("global_shutdown_cmd", "poweroff", CFGF_NONE),
         CFG_STR("global_reboot_cmd", "reboot", CFGF_NONE),
+        CFG_BOOL("global_enable_rofi", false, CFGF_NONE),
 
         CFG_BOOL("window_use_global_decorations_style", true, CFGF_NONE),
         CFG_BOOL("window_use_global_colors", true, CFGF_NONE),
@@ -336,10 +335,9 @@ int LoadJWMConfig(JWM **jwm, cfg_t **cfg)
     (*jwm)->global_enable_shutdown_reboot = cfg_getbool(*cfg, "global_enable_shutdown_reboot");
     (*jwm)->global_shutdown_cmd = cfg_getstr(*cfg, "global_shutdown_cmd");
     (*jwm)->global_reboot_cmd = cfg_getstr(*cfg, "global_reboot_cmd");
+    (*jwm)->global_enable_rofi = cfg_getbool(*cfg, "global_enable_rofi");
 
     (*jwm)->terminal_name = cfg_getstr(*cfg, "global_terminal");
-    (*jwm)->filemanager_name = cfg_getstr(*cfg, "global_filemanager");
-    (*jwm)->browser_name = cfg_getstr(*cfg, "global_browser");
 
     (*jwm)->window_use_global_decorations_style = cfg_getbool(*cfg, "window_use_global_decorations_style");
     (*jwm)->window_use_global_colors = cfg_getbool(*cfg, "window_use_global_colors");

@@ -205,11 +205,15 @@ int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons, const char *
         }
     }
 
-    //const char *search_icon = HashMapGet(icons, "system-search");
     const char *refresh_icon = HashMapGet(icons, "view-refresh"); 
     const char *logout_icon = HashMapGet(icons, "system-log-out");
 
-    //WRITE_CFG("        <Program icon=\"%s\" label=\"%s\">%s</Program>\n", search_icon, "Search", "rofi -show-icons -show drun");
+    if (jwm->global_enable_rofi)
+    {
+        const char *search_icon = HashMapGet(icons, "system-search");
+        WRITE_CFG("        <Program icon=\"%s\" label=\"%s\">%s</Program>\n", search_icon, "Search", "rofi -show-icons -show drun");
+    }
+
     WRITE_CFG("        <Restart label=\"Refresh\" icon=\"%s\"/>\n", refresh_icon);
     WRITE_CFG("        <Exit label=\"Logout\" icon=\"%s\"/>\n", logout_icon);
 
