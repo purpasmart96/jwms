@@ -21,9 +21,9 @@ DESKTOP := jwms.desktop
 CONF := jwms.conf
 VERSION ?= 0.2
 TARBALL_NAME := jwms-$(VERSION)-linux-$(ARCH).tar.gz
-SYS_CONF_DIR := /etc/jwms
-BIN_DIR := /usr/local/bin
-DESKTOP_DIR := /usr/share/xsessions
+SYS_CONF_DIR := $(DESTDIR)/etc/jwms
+BIN_DIR := $(DESTDIR)/usr/local/bin
+DESKTOP_DIR := $(DESTDIR)/usr/share/xsessions
 
 # Posix compatiable version of $(wildcard)
 #SRCS := $(shell echo src/*.c)
@@ -109,16 +109,16 @@ install:
 	@if [ ! -f "$(BIN)" ] && [ ! -f "$(BIN2)" ]; then \
 		echo "Please run make before installing."; \
 	else \
-		echo "Installing $(BIN) to $(BIN_DIR)..."; \
+		echo "Installing $(BIN) to $(BIN_DIR)"; \
 		install -d $(BIN_DIR); \
 		install $(BIN) $(BIN_DIR)/$(BIN); \
-		echo "Installing $(BIN2) to $(BIN_DIR)..."; \
+		echo "Installing $(BIN2) to $(BIN_DIR)"; \
 		install $(BIN2) $(BIN_DIR)/$(BIN2); \
 		install -d $(DESKTOP_DIR); \
-		echo "Installing $(DESKTOP) to $(DESKTOP_DIR)..."; \
+		echo "Installing $(DESKTOP) to $(DESKTOP_DIR)"; \
 		install -m 644 $(DESKTOP) $(DESKTOP_DIR)/$(DESKTOP); \
 		install -d -m 0755 $(SYS_CONF_DIR); \
-		echo "Installing $(CONF) to $(SYS_CONF_DIR)..."; \
+		echo "Installing $(CONF) to $(SYS_CONF_DIR)"; \
 		install -m 644 $(CONF) $(SYS_CONF_DIR)/$(CONF); \
 	fi
 
