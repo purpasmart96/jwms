@@ -37,11 +37,45 @@ static HashMap2 *themes_map = NULL;
 // Keys for fast searching of themes_map
 static DArray *themes_names = NULL;
 
+static const char *extra_icons[] =
+{
+    "applications-multimedia",
+    "applications-development",
+    "applications-education",
+    "applications-games",
+    "applications-graphics",
+    "applications-internet",
+    "applications-office", 
+    "applications-science",
+    "applications-system", 
+    "applications-utilities",
+
+    "applications-multimedia-symbolic",
+    "applications-development-symbolic",
+    "applications-education-symbolic",
+    "applications-games-symbolic",
+    "applications-graphics-symbolic",
+    "applications-internet-symbolic",
+    "applications-office-symbolic", 
+    "applications-science-symbolic",
+    "applications-system-symbolic", 
+    "applications-utilities-symbolic",
+
+    "settings-configure-symbolic",
+    "preferences-desktop", 
+    "system-search",
+    "view-refresh",
+    "system-log-out",
+    "system-shutdown",
+    "system-reboot"
+};
+
 static const Pair common_icon_sizes[] =
 {
     {"48",  48  },
     {"32",  32  },
     {"24",  24  },
+    {"22",  22  },
     {"64",  64  },
     {"16",  16  },
     {"96",  96  },
@@ -853,7 +887,7 @@ static int SearchThemeNameCmp2(const void *a, const void *b)
     return strcmp(theme_name_a, theme_name_b) == 0;
 }
 
-int PreloadIconThemes(const char *theme)
+int PreloadIconThemesOld(const char *theme)
 {
     IconTheme *icon_theme = LoadIconTheme(theme);
 
@@ -882,6 +916,76 @@ int PreloadIconThemes(const char *theme)
             if (PreloadIconThemes(parent) != 0)
                 continue;
         }
+    }
+
+    return 0;
+}
+
+static int LoadInheritedTheme(const char *theme)
+{
+    IconTheme *icon_theme = LoadIconTheme(theme);
+
+    if (icon_theme == NULL)
+        return -1;
+
+    HashMapInsert2(themes_map, theme, icon_theme);
+    DArrayAdd(themes_names, strdup(theme));
+
+    if (icon_theme->parents->size != 0)
+    {
+        for (int i = 0; i < icon_theme->parents->size; i++)
+        {
+            char *parent = icon_theme->parents->data[i];
+            if (HashMapGet2(themes_map, parent) != NULL)
+            {
+                continue;
+            }
+
+            if (LoadInheritedTheme(parent) != 0)
+                continue;
+        }
+    }
+
+    return 0;
+}
+
+int PreloadIconThemes(const char *theme)
+{
+    IconTheme *icon_theme = LoadIconTheme(theme);
+
+    if (icon_theme == NULL)
+        return -1;
+
+    if (themes_map == NULL)
+    {
+        themes_map = HashMapCreate2((void*)UnLoadIconTheme, NULL);
+        themes_names = DArrayCreate(8, free, SearchThemeNameCmp2, NULL);
+    }
+
+    HashMapInsert2(themes_map, theme, icon_theme);
+    DArrayAdd(themes_names, strdup(theme));
+
+    if (icon_theme->parents->size)
+    {
+        for (int i = 0; i < icon_theme->parents->size; i++)
+        {
+            char *parent = icon_theme->parents->data[i];
+            if (HashMapGet2(themes_map, parent) != NULL)
+                continue;
+            if (LoadInheritedTheme(parent) != 0)
+                continue;
+        }
+    }
+
+    const char *default_theme_name = "hicolor";
+    if (!DArrayContains(themes_names, default_theme_name))
+    {
+        IconTheme *default_theme = LoadIconTheme(default_theme_name);
+        if (default_theme == NULL)
+            return -1;
+    
+        HashMapInsert2(themes_map, default_theme_name, default_theme);
+        DArrayAdd(themes_names, strdup(default_theme_name));
     }
 
     return 0;
@@ -1084,24 +1188,11 @@ HashMap *FindAllIcons(BTreeNode *entries, int size, int scale)
     // Desktop entry icons
     BSTInOrderTraverse(entries, SearchAndStoreIcon, &args);
 
-    // Extra icons, should put this in a for loop
-    SearchAndStoreIconHelper(valid_icons, "applications-multimedia", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "applications-development", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "applications-education", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "applications-games", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "applications-graphics", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "applications-internet", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "applications-office", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "applications-science", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "preferences-desktop", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "applications-system", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "applications-utilities", size, scale);
-
-    SearchAndStoreIconHelper(valid_icons, "system-search", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "view-refresh", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "system-log-out", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "system-shutdown", size, scale);
-    SearchAndStoreIconHelper(valid_icons, "system-reboot", size, scale);
+    // Extra icons that are needed, should put this somewhere else
+    for (size_t i = 0; i < ARRAY_SIZE(extra_icons); i++)
+    {
+        SearchAndStoreIconHelper(valid_icons, extra_icons[i], size, scale);
+    }
 
     return valid_icons;
 }

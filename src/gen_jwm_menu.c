@@ -33,6 +33,23 @@ static const char *category_icons[] =
     "applications-utilities",
 };
 
+static const char *category_icons_symbolic[] =
+{
+    "applications-multimedia-symbolic",
+    "applications-multimedia-symbolic",
+    "applications-multimedia-symbolic",
+    "applications-development-symbolic",
+    "applications-education-symbolic",
+    "applications-games-symbolic",
+    "applications-graphics-symbolic",
+    "applications-internet-symbolic",
+    "applications-office-symbolic",
+    "applications-science-symbolic",
+    "settings-configure-symbolic",
+    "applications-system-symbolic",
+    "applications-utilities-symbolic",
+};
+
 /*
 static int CategoryCmp(const void *a, const void *b)
 {
@@ -91,9 +108,11 @@ static void WriteMenuCategory(void *entry_ptr, void *args_ptr)
     }
 }
 
-static void WriteJWMRootMenuCategoryList(BTreeNode *entries, HashMap *icons, FILE *fp, MenuCategory *category)
+static void WriteJWMRootMenuCategoryList(BTreeNode *entries, HashMap *icons, FILE *fp, MenuCategory *category, bool use_symbolic)
 {
-    const char *category_icon = HashMapGet(icons, category_icons[category->value]); //FindIcon(category_icons[category->value], 32, 1);
+    const char *icon_name = use_symbolic ? category_icons_symbolic[category->value] : category_icons[category->value];
+
+    const char *category_icon = HashMapGet(icons, icon_name);
     WRITE_CFG("       <Menu icon=\"%s\" label=\"%s\">\n", category_icon, category->menu_name);
  
     CategoryArgs args =
@@ -197,11 +216,12 @@ int CreateJWMRootMenu(JWM *jwm, BTreeNode *entries, HashMap *icons, const char *
 
     BSTInOrderTraverse(entries, CountCategories, args);
 
+    bool use_symbolic = HashMapGet(icons, "applications-multimedia-symbolic") != NULL;
     for (int i = 0; i < num_categories; i++)
     {
         if (args[i].found)
         {
-            WriteJWMRootMenuCategoryList(entries, icons, fp, &args[i].category);
+            WriteJWMRootMenuCategoryList(entries, icons, fp, &args[i].category, use_symbolic);
         }
     }
 
