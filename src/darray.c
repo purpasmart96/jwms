@@ -145,23 +145,8 @@ bool DArrayContains(DArray *darray, const void *target)
     return DArraySearch(darray, target) != NULL ? true : false;
 }
 
-// O(n^2)
-void DArrayFindDupes(DArray *darray, const void *item)
-{
-    void** res[darray->size];
-    for (size_t i = 0; i < darray->size - 1; i++)
-    {
-        for (size_t j = i + 1; j < darray->size; j++)
-        {
-            if (darray->data[i] == darray->data[j])
-            {
-
-            }
-        }
-    }
-}
-
-// O(n log n) + O(n)
+// Unsorted: O(n log n) + O(n)
+// Sorted: O(n)
 void DArrayRemoveDupes(DArray *darray)
 {
     DArraySort(darray);
@@ -169,7 +154,7 @@ void DArrayRemoveDupes(DArray *darray)
     size_t j = 0;
     for (size_t i = 1; i < darray->size; i++)
     {
-        if (darray->data[i] == darray->data[j])
+        if (darray->SearchCompareCallback(darray->data[i], darray->data[j]))
         {
             j++;
             darray->data[j] = darray->data[i];
