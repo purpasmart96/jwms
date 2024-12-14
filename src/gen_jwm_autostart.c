@@ -85,7 +85,7 @@ int CreateJWMAutoStart(JWM *jwm, cfg_t *cfg)
     printf("Writing to %s\n", path);
 
     // Start of the bash autostart script
-    WRITE_CFG("#!/bin/bash\n\n");
+    WRITE_CFG("#!/bin/sh\n\n");
 
     int n = cfg_size(cfg, "autostart");
 	DEBUG_LOG("\nFound %d autostart tasks:\n", n);
