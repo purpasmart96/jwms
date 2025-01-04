@@ -620,11 +620,17 @@ static char *LookupIconExactSize(IconTheme *theme, const char *icon_name, int si
     {
         int curr_index = index_array[i];
         XDGIconDir *curr_icon_dir = theme->icon_dirs->data[curr_index];
+
+        // Skip searching directories that don't match the final icon size (example: icon_name_32x@3x)
+        if (!DirectoryMatchesSize(curr_icon_dir, size, scale))
+            continue;
+
         // Check if the directory is indexed, if not, try to index it
         if (curr_icon_dir->index_state == NotIndexed)
         {
             IndexSingleIconDir(curr_icon_dir, theme_dir);
         }
+
         // If partially indexed, fallback to using the access syscall
         if (curr_icon_dir->index_state == PartiallyIndexed)
         {
@@ -632,14 +638,13 @@ static char *LookupIconExactSize(IconTheme *theme, const char *icon_name, int si
             if (!LookupIconBackup(curr_icon_dir, icon_name, theme_dir))
                 continue;
         }
-        // Now, search for the icon in the indexed hash map
+
+        // Now, search for the icon in the hash map
         const char *icon_path = HashMapGet(curr_icon_dir->icons, icon_name);
         if (icon_path == NULL)
             continue;
-        if (DirectoryMatchesSize(curr_icon_dir, size, scale))
-        {
-            return strdup(icon_path); // Exact match
-        }
+
+        return strdup(icon_path); // Exact match
     }
 
     return NULL;
